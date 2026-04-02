@@ -1,0 +1,27 @@
+{
+  "name": "icon-composer-mcp",
+  "module": "src/server.ts",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "icon-composer-mcp": "src/server.ts"
+  },
+  "scripts": {
+    "start": "bun run src/server.ts",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/sharp": "^0.32.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@commander-js/extra-typings": "^14.0.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "commander": "^14.0.3",
+    "sharp": "^0.34.5",
+    "zod": "^4.3.6"
+  }
+}
