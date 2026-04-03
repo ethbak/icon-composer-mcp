@@ -207,6 +207,12 @@ function defineTestCases(hasIctool: boolean, hasApplePresets: boolean): VisualTe
     { id: 'scale-0.65', category: 'Glyph Scale', description: 'Standard Apple-recommended size', command: 'icon-composer create glyph.png ./out --bg-color "#0A66C2" --glyph-scale 0.65', filename: 'scale-0.65.png' },
     { id: 'scale-0.9', category: 'Glyph Scale', description: 'Glyph nearly fills the icon', command: 'icon-composer create glyph.png ./out --bg-color "#0A66C2" --glyph-scale 0.9', filename: 'scale-0.9.png' },
     { id: 'scale-1.0', category: 'Glyph Scale', description: 'Glyph fills entire icon area', command: 'icon-composer create glyph.png ./out --bg-color "#0A66C2" --glyph-scale 1.0', filename: 'scale-1.0.png' },
+    { id: 'scale-2.0', category: 'Glyph Scale', description: 'Glyph at 2x — extends beyond normal icon area', command: 'icon-composer create glyph.png ./out --bg-color "#0A66C2" --glyph-scale 2.0', filename: 'scale-2.0.png' },
+    { id: 'scale-5.0', category: 'Glyph Scale', description: 'Glyph at 5x — massively oversized, should crop gracefully', command: 'icon-composer create glyph.png ./out --bg-color "#0A66C2" --glyph-scale 5.0', filename: 'scale-5.0.png' },
+    { id: 'scale-2.0-flat', category: 'Glyph Scale', description: 'Scale 2.0 flat render on square bg', command: 'icon-composer preview bundle.icon out.png --flat --glyph-scale 2.0', filename: 'scale-2.0-flat.png' },
+    { id: 'scale-2.0-app', category: 'Glyph Scale', description: 'Scale 2.0 glass render on app bg', command: 'icon-composer preview bundle.icon out.png --glyph-scale 2.0 --canvas-bg dark', filename: 'scale-2.0-app.png' },
+    { id: 'scale-5.0-flat', category: 'Glyph Scale', description: 'Scale 5.0 flat render on square bg', command: 'icon-composer preview bundle.icon out.png --flat --glyph-scale 5.0', filename: 'scale-5.0-flat.png' },
+    { id: 'scale-5.0-app', category: 'Glyph Scale', description: 'Scale 5.0 glass render on app bg', command: 'icon-composer preview bundle.icon out.png --glyph-scale 5.0 --canvas-bg dark', filename: 'scale-5.0-app.png' },
   );
 
   // Category 5: Canvas Backgrounds
@@ -425,7 +431,13 @@ export async function runVisualTests(outputDir: string): Promise<void> {
       } else if (tc.id.startsWith('scale-')) {
         const scale = parseFloat(tc.id.replace('scale-', ''));
         const bp = await createBaseBundle(tmpDir, tc.id, whiteCircle, { glyphScale: scale });
-        await renderFlatPreview(bp, outPath, SIZE);
+        if (tc.id.endsWith('-app')) {
+          await exportPreview({ bundle_path: bp, output_path: outPath, size: SIZE, flat: false, zoom: 0.6, canvas_bg: 'dark' });
+        } else if (tc.id.endsWith('-flat')) {
+          await renderFlatPreview(bp, outPath, SIZE);
+        } else {
+          await renderFlatPreview(bp, outPath, SIZE);
+        }
 
       // ── Category: Canvas Backgrounds ──
       } else if (tc.id === 'canvas-none') {

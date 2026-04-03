@@ -3,7 +3,7 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { makeTempDir, cleanTempDir } from '../helpers/test-helpers';
 import { TEST_PNG } from '../helpers/fixtures';
-import { readIconBundle, writeIconBundle, saveManifest } from '../../lib/bundle';
+import { readIconBundle, writeIconBundle, saveManifest, DEFAULT_MAX_ASSET_BYTES } from '../../lib/bundle';
 import type { IconManifest } from '../../types';
 
 // ---------------------------------------------------------------------------
@@ -97,6 +97,39 @@ test('R-2: no Assets dir — assets Map is empty', async () => {
   const result = await readIconBundle(bundlePath);
   expect(result.assets.size).toBe(0);
   expect(result.manifest).toEqual(manifest);
+});
+
+// R-2b: Asset exceeding default size limit — throws
+test('R-2b: oversized asset — throws with size info', async () => {
+  const manifest = makeMinimalManifest();
+  const bundlePath = path.join(tmpDir, 'BigAsset.icon');
+  const assetsPath = path.join(bundlePath, 'Assets');
+  await fs.mkdir(assetsPath, { recursive: true });
+  await fs.writeFile(path.join(bundlePath, 'icon.json'), JSON.stringify(manifest, null, 2));
+
+  // Write a file that exceeds a small custom limit
+  await fs.writeFile(path.join(assetsPath, 'big.png'), Buffer.alloc(1024));
+
+  await expect(readIconBundle(bundlePath, 512)).rejects.toThrow('exceeds maximum size');
+});
+
+// R-2c: Asset within custom limit — reads successfully
+test('R-2c: asset within custom limit — reads fine', async () => {
+  const manifest = makeMinimalManifest();
+  const bundlePath = path.join(tmpDir, 'SmallAsset.icon');
+  const assetsPath = path.join(bundlePath, 'Assets');
+  await fs.mkdir(assetsPath, { recursive: true });
+  await fs.writeFile(path.join(bundlePath, 'icon.json'), JSON.stringify(manifest, null, 2));
+
+  await fs.writeFile(path.join(assetsPath, 'ok.png'), Buffer.alloc(256));
+
+  const result = await readIconBundle(bundlePath, 512);
+  expect(result.assets.has('ok.png')).toBe(true);
+});
+
+// R-2d: DEFAULT_MAX_ASSET_BYTES is 20MB
+test('R-2d: default max asset size is 20 MB', () => {
+  expect(DEFAULT_MAX_ASSET_BYTES).toBe(20 * 1024 * 1024);
 });
 
 // R-3: Bundle path doesn't exist — throws ENOENT
@@ -222,6 +255,25 @@ test('W-5: icon.json uses 2-space indentation', async () => {
   expect(indentedLine).toBeDefined();
 });
 
+// W-6: writeIconBundle rejects unsafe asset filenames (defense-in-depth)
+test('W-6: rejects asset filename with path traversal', async () => {
+  const manifest = makeMinimalManifest();
+  const assets = new Map<string, Buffer>([['../evil.png', TEST_PNG]]);
+
+  await expect(writeIconBundle(tmpDir, 'Evil', manifest, assets)).rejects.toThrow(
+    'Unsafe asset filename'
+  );
+});
+
+test('W-7: rejects asset filename with subdirectory', async () => {
+  const manifest = makeMinimalManifest();
+  const assets = new Map<string, Buffer>([['sub/dir.png', TEST_PNG]]);
+
+  await expect(writeIconBundle(tmpDir, 'SubDir', manifest, assets)).rejects.toThrow(
+    'Unsafe asset filename'
+  );
+});
+
 // ---------------------------------------------------------------------------
 // saveManifest tests
 // ---------------------------------------------------------------------------
@@ -312,4 +364,63 @@ test('S-5: read-mutate-save loop — 3 iterations toggle specular, final state i
   // Started true → false → true → false after 3 toggles
   const { manifest: final } = await readIconBundle(bundlePath);
   expect(final.groups[0]?.specular).toBe(false);
+});
+
+// ---------------------------------------------------------------------------
+// Round-trip fidelity with Apple-authored bundle
+// ---------------------------------------------------------------------------
+
+const APPLE_FIXTURE = path.join(__dirname, '..', 'fixtures', 'apple-authored.icon');
+
+test('RT-1: read Apple-authored bundle without errors', async () => {
+  const { manifest, assets } = await readIconBundle(APPLE_FIXTURE);
+  expect(manifest.groups.length).toBeGreaterThan(0);
+  expect(assets.size).toBeGreaterThan(0);
+  expect(manifest['supported-platforms']).toBeDefined();
+});
+
+test('RT-2: round-trip preserves manifest exactly', async () => {
+  const { manifest: original, assets: originalAssets } = await readIconBundle(APPLE_FIXTURE);
+
+  // Write to new location
+  const roundtripPath = await writeIconBundle(tmpDir, 'Roundtrip', original, originalAssets);
+
+  // Read back
+  const { manifest: roundtripped, assets: roundtrippedAssets } = await readIconBundle(roundtripPath);
+
+  // Manifest deep equality
+  expect(roundtripped).toEqual(original);
+
+  // Assets byte-identical
+  expect(roundtrippedAssets.size).toBe(originalAssets.size);
+  for (const [name, buf] of originalAssets) {
+    expect(roundtrippedAssets.has(name)).toBe(true);
+    expect(roundtrippedAssets.get(name)!.equals(buf)).toBe(true);
+  }
+});
+
+test('RT-3: modify then round-trip preserves Apple fields alongside changes', async () => {
+  const { manifest, assets } = await readIconBundle(APPLE_FIXTURE);
+
+  // Add a new layer
+  manifest.groups[0].layers.push({
+    'image-name': 'extra.png',
+    name: 'extra-layer',
+    glass: false,
+  });
+  assets.set('extra.png', TEST_PNG);
+
+  // Write modified bundle
+  const modifiedPath = await writeIconBundle(tmpDir, 'Modified', manifest, assets);
+  const { manifest: readBack } = await readIconBundle(modifiedPath);
+
+  // Original fields preserved
+  expect(readBack['fill-specializations']).toEqual(manifest['fill-specializations']);
+  expect(readBack['supported-platforms']).toEqual(manifest['supported-platforms']);
+  expect(readBack.groups[0].specular).toBe(manifest.groups[0].specular);
+  expect(readBack.groups[0].shadow).toEqual(manifest.groups[0].shadow);
+
+  // New layer present
+  expect(readBack.groups[0].layers).toHaveLength(manifest.groups[0].layers.length);
+  expect(readBack.groups[0].layers.at(-1)!.name).toBe('extra-layer');
 });

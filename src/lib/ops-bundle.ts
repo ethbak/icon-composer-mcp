@@ -2,6 +2,7 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { createManifest, addGroup, addLayer } from './manifest';
 import { readIconBundle, writeIconBundle, saveManifest } from './bundle';
+import { sanitizeFilename } from './sanitize';
 import type { BlendMode } from '../types';
 
 // ── Standard MCP result type ──
@@ -108,19 +109,20 @@ export async function addLayerToBundle(params: AddLayerParams): Promise<McpResul
     const { manifest, assets } = await readIconBundle(params.bundle_path);
 
     const imageBuffer = await fs.readFile(params.image_path);
-    const imageName = `${params.layer_name}${path.extname(params.image_path)}`;
+    const safeName = sanitizeFilename(params.layer_name);
+    const imageName = `${safeName}${path.extname(params.image_path)}`;
     assets.set(imageName, imageBuffer);
 
     let group;
     if (params.create_group || manifest.groups.length === 0) {
-      group = addGroup(manifest, { name: params.layer_name });
+      group = addGroup(manifest, { name: safeName });
     } else {
       group = manifest.groups[Math.min(params.group_index, manifest.groups.length - 1)];
     }
 
     addLayer(group, {
       imageName,
-      name: params.layer_name,
+      name: safeName,
       opacity: params.opacity,
       blendMode: params.blend_mode as BlendMode,
       glass: params.glass,

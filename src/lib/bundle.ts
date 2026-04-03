@@ -2,12 +2,18 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import type { IconManifest } from '../types';
 
+export const DEFAULT_MAX_ASSET_BYTES = 20 * 1024 * 1024; // 20 MB
+
 /**
  * Read an existing .icon bundle from disk.
  * Returns the parsed manifest and a Map of asset filename → Buffer.
  * If the Assets/ directory does not exist, the Map will be empty.
+ * Rejects individual assets exceeding maxAssetBytes (default 20 MB).
  */
-export async function readIconBundle(bundlePath: string): Promise<{
+export async function readIconBundle(
+  bundlePath: string,
+  maxAssetBytes: number = DEFAULT_MAX_ASSET_BYTES,
+): Promise<{
   manifest: IconManifest;
   assets: Map<string, Buffer>;
 }> {
@@ -28,7 +34,16 @@ export async function readIconBundle(bundlePath: string): Promise<{
   try {
     const files = await fs.readdir(assetsPath);
     for (const file of files) {
-      const buffer = await fs.readFile(path.join(assetsPath, file));
+      const filePath = path.join(assetsPath, file);
+      const stat = await fs.stat(filePath);
+      if (stat.size > maxAssetBytes) {
+        const sizeMB = (stat.size / (1024 * 1024)).toFixed(1);
+        const limitMB = (maxAssetBytes / (1024 * 1024)).toFixed(1);
+        throw new Error(
+          `Asset "${file}" exceeds maximum size (${sizeMB} MB > ${limitMB} MB)`,
+        );
+      }
+      const buffer = await fs.readFile(filePath);
       assets.set(file, buffer);
     }
   } catch (err: unknown) {
@@ -64,6 +79,9 @@ export async function writeIconBundle(
   );
 
   for (const [filename, buffer] of assets) {
+    if (path.basename(filename) !== filename) {
+      throw new Error(`Unsafe asset filename rejected: "${filename}"`);
+    }
     await fs.writeFile(path.join(assetsPath, filename), buffer);
   }
 

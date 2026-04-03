@@ -2,7 +2,7 @@
 import { program } from 'commander';
 import { createIcon, addLayerToBundle, removeFromBundle, inspectBundle } from './lib/ops-bundle';
 import { setGlassEffects, setAppearances, setFill, setLayerPosition, toggleFx } from './lib/ops-glass';
-import { exportPreview, renderLiquidGlass } from './lib/ops-render';
+import { exportPreview, renderLiquidGlass, exportMarketing } from './lib/ops-render';
 
 // ── Helpers ──
 
@@ -44,7 +44,7 @@ program
   .requiredOption('--bg-color <hex>', 'Background color (hex)')
   .option('--bundle-name <name>', 'Bundle name', 'AppIcon')
   .option('--dark-bg-color <hex>', 'Dark mode background color')
-  .option('--glyph-scale <n>', 'Glyph scale', toFloat, 0.65)
+  .option('--glyph-scale <n>', 'Glyph scale (1.0 = standard size)', toFloat, 1.0)
   .option('--specular', 'Enable specular highlight', true)
   .option('--no-specular', 'Disable specular highlight')
   .option('--shadow-kind <kind>', 'Shadow kind (neutral, layer-color, none)', 'layer-color')
@@ -336,6 +336,24 @@ program
         canvas_bg_color: opts.canvasBgColor,
         canvas_bg_image: opts.canvasBgImage,
         zoom: opts.zoom,
+      }),
+    );
+  });
+
+// ── export-marketing ──
+
+program
+  .command('export-marketing')
+  .description('Export flat marketing PNG for App Store Connect (no alpha)')
+  .argument('<bundle_path>', 'Path to the .icon bundle')
+  .argument('<output_path>', 'Output PNG path')
+  .option('--size <n>', 'Output size in pixels', toInt, 1024)
+  .action(async (bundle_path, output_path, opts) => {
+    await run(() =>
+      exportMarketing({
+        bundle_path,
+        output_path,
+        size: opts.size,
       }),
     );
   });
