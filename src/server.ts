@@ -60,6 +60,7 @@ server.tool(
     blur_material: z.optional(z.number().min(0).max(1)).describe('Liquid Glass blur amount (0-1, omit to disable)'),
     translucency_enabled: z.boolean().default(false).describe('Enable translucency gradient'),
     translucency_value: z.number().min(0).max(1).default(0.4).describe('Translucency amount (0-1)'),
+    split_layers: z.boolean().default(true).describe('Split multi-shape SVGs into separate glass layers (each shape gets independent glass effects)'),
   },
   async (params) => createIcon(params),
 );
