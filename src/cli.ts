@@ -45,6 +45,8 @@ program
   .option('--bundle-name <name>', 'Bundle name', 'AppIcon')
   .option('--dark-bg-color <hex>', 'Dark mode background color')
   .option('--glyph-scale <n>', 'Glyph scale (1.0 = standard size)', toFloat, 1.0)
+  .option('--split-layers', 'Split multi-shape SVGs into separate glass layers (default: true)', true)
+  .option('--no-split-layers', 'Keep SVG as a single layer')
   .option('--specular', 'Enable specular highlight', true)
   .option('--no-specular', 'Disable specular highlight')
   .option('--shadow-kind <kind>', 'Shadow kind (neutral, layer-color, none)', 'layer-color')
@@ -67,6 +69,7 @@ program
         blur_material: opts.blurMaterial ?? null,
         translucency_enabled: opts.translucencyEnabled,
         translucency_value: opts.translucencyValue,
+        split_layers: opts.splitLayers,
       }),
     );
   });

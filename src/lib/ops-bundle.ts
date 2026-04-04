@@ -3,6 +3,7 @@ import * as path from 'node:path';
 import { createManifest, addGroup, addLayer } from './manifest';
 import { readIconBundle, writeIconBundle, saveManifest } from './bundle';
 import { sanitizeFilename } from './sanitize';
+import { splitSvgLayers } from './svg-split';
 import { toBlendMode, type McpResult } from '../types';
 
 // ── Parameter interfaces ──
@@ -20,6 +21,7 @@ export interface CreateIconParams {
   blur_material?: number | null;
   translucency_enabled: boolean;
   translucency_value: number;
+  split_layers?: boolean;
 }
 
 export interface AddLayerParams {
@@ -49,8 +51,7 @@ export interface RemoveParams {
 export async function createIcon(params: CreateIconParams): Promise<McpResult> {
   try {
     const foregroundBuffer = await fs.readFile(params.foreground_path);
-    const ext = path.extname(params.foreground_path);
-    const foregroundName = `foreground${ext}`;
+    const ext = path.extname(params.foreground_path).toLowerCase();
 
     const manifest = createManifest({
       fill: params.bg_color,
@@ -68,15 +69,38 @@ export async function createIcon(params: CreateIconParams): Promise<McpResult> {
         : undefined,
     });
 
-    addLayer(group, {
-      imageName: foregroundName,
-      name: 'glyph',
-      scale: params.glyph_scale,
-      glass: true,
-    });
-
     const assets = new Map<string, Buffer>();
-    assets.set(foregroundName, foregroundBuffer);
+
+    // Auto-detect: split multi-shape SVGs into separate layers
+    const shouldSplit = params.split_layers !== false && ext === '.svg';
+    const svgContent = shouldSplit ? foregroundBuffer.toString('utf-8') : '';
+    const layers = shouldSplit ? splitSvgLayers(svgContent) : [];
+
+    if (layers.length > 1) {
+      // Multi-layer SVG: each shape becomes its own layer
+      for (let i = 0; i < layers.length; i++) {
+        const layer = layers[i];
+        const layerName = sanitizeFilename(layer.name);
+        const imageName = `${layerName}.svg`;
+        assets.set(imageName, Buffer.from(layer.svg));
+        addLayer(group, {
+          imageName,
+          name: layerName,
+          scale: params.glyph_scale,
+          glass: true,
+        });
+      }
+    } else {
+      // Single shape or non-SVG: use as one layer
+      const foregroundName = `foreground${ext}`;
+      assets.set(foregroundName, foregroundBuffer);
+      addLayer(group, {
+        imageName: foregroundName,
+        name: 'glyph',
+        scale: params.glyph_scale,
+        glass: true,
+      });
+    }
 
     const bundlePath = await writeIconBundle(
       params.output_dir,
@@ -85,8 +109,9 @@ export async function createIcon(params: CreateIconParams): Promise<McpResult> {
       assets,
     );
 
+    const layerCount = layers.length > 1 ? layers.length : 1;
     return {
-      content: [{ type: 'text', text: `Created .icon bundle at: ${bundlePath}` }],
+      content: [{ type: 'text', text: `Created .icon bundle at: ${bundlePath} (${layerCount} layer${layerCount > 1 ? 's' : ''})` }],
     };
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Unknown error';
