@@ -70,7 +70,7 @@ icon-composer export-marketing ./out/AppIcon.icon marketing.png
 ## Installation
 
 <details open>
-<summary>&nbsp;&nbsp;<picture><source media="(prefers-color-scheme: dark)" srcset="https://cdn.simpleicons.org/anthropic/FFFFFF"><source media="(prefers-color-scheme: light)" srcset="https://cdn.simpleicons.org/anthropic/191919"><img src="https://cdn.simpleicons.org/anthropic/191919" width="16" height="16"></picture>&nbsp;<b>Claude Code</b></summary>
+<summary>&nbsp;&nbsp;<img src="https://raw.githubusercontent.com/lobehub/lobe-icons/refs/heads/master/packages/static-svg/icons/claudecode.svg" width="16" height="16">&nbsp;<b>Claude Code</b></summary>
 
 &nbsp;
 
@@ -81,7 +81,7 @@ claude mcp add icon-composer -- npx -y icon-composer-mcp
 </details>
 
 <details>
-<summary>&nbsp;&nbsp;<picture><source media="(prefers-color-scheme: dark)" srcset="https://cdn.simpleicons.org/anthropic/FFFFFF"><source media="(prefers-color-scheme: light)" srcset="https://cdn.simpleicons.org/anthropic/191919"><img src="https://cdn.simpleicons.org/anthropic/191919" width="16" height="16"></picture>&nbsp;<b>Claude Desktop</b></summary>
+<summary>&nbsp;&nbsp;<img src="https://cdn.simpleicons.org/claude/D97757" width="16" height="16">&nbsp;<b>Claude Desktop</b></summary>
 
 &nbsp;
 
