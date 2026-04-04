@@ -70,7 +70,7 @@ icon-composer export-marketing ./out/AppIcon.icon marketing.png
 ## Installation
 
 <details open>
-<summary>&nbsp;&nbsp;<img src="https://raw.githubusercontent.com/lobehub/lobe-icons/refs/heads/master/packages/static-svg/icons/claudecode.svg" width="16" height="16">&nbsp;<b>Claude Code</b></summary>
+<summary>&nbsp;&nbsp;<img src="https://raw.githubusercontent.com/lobehub/lobe-icons/refs/heads/master/packages/static-svg/icons/claudecode-color.svg" width="16" height="16">&nbsp;<b>Claude Code</b></summary>
 
 &nbsp;
 
