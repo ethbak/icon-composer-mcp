@@ -184,7 +184,11 @@ icon-composer --help
 <!-- TODO: Add a diagram or before/after showing the workflow -->
 
 <p align="center">
-  <img src="assets/how-it-works.png" alt="how it works" width="600">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/how-it-works-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="assets/how-it-works-light.png">
+    <img alt="how it works" src="assets/how-it-works-light.png" width="700">
+  </picture>
 </p>
 
 1. **Provide a glyph** — any PNG or SVG logo/image
