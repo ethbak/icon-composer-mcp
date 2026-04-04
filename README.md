@@ -6,7 +6,7 @@
   </picture>
 </p>
 
-<h1 align="center">icon-composer-mcp</h1>
+<h1 align="center">Icon Composer MCP</h1>
 
 <p align="center">
   CLI and MCP server for creating images, icons, and logos with Liquid Glass effects (iOS 26+). Not affiliated with Apple .
