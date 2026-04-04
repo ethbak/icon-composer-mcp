@@ -221,6 +221,8 @@ Run `icon-composer doctor` to check your setup.
 | `export-marketing` | Export flat 1024x1024 PNG for App Store Connect (no alpha) |
 | `doctor` | Check system setup and dependencies |
 
+### Details
+
 <details>
 <summary><b><code>create</code></b> — Create a new <code>.icon</code> bundle</summary>
 
@@ -486,6 +488,8 @@ icon-composer doctor
 | `export_marketing` | Export flat opaque PNG for App Store Connect |
 
 All tools return `{ content: [{ type: "text", text: "..." }], isError?: true }`.
+
+### Details
 
 <details>
 <summary><b><code>create_icon</code></b></summary>
