@@ -105,7 +105,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 
 &nbsp;
 
-Add to your Cursor MCP config:
+Add to `.cursor/mcp.json` in your project root (or `~/.cursor/mcp.json` for global):
 
 ```json
 {
@@ -117,6 +117,8 @@ Add to your Cursor MCP config:
   }
 }
 ```
+
+The server will appear in **Cursor Settings > MCP Servers**. No restart required.
 
 </details>
 
@@ -125,18 +127,23 @@ Add to your Cursor MCP config:
 
 &nbsp;
 
-Add to your VS Code MCP settings:
+Add to `.vscode/mcp.json` in your project root (or open **Command Palette > MCP: Open User Configuration** for global):
+
+> **Note:** VS Code uses `"servers"` (not `"mcpServers"`) and requires a `"type"` field.
 
 ```json
 {
-  "mcpServers": {
+  "servers": {
     "icon-composer": {
+      "type": "stdio",
       "command": "npx",
       "args": ["-y", "icon-composer-mcp"]
     }
   }
 }
 ```
+
+You'll see Start/Stop/Restart buttons inline in the editor. First launch will prompt a trust confirmation.
 
 </details>
 
@@ -145,7 +152,9 @@ Add to your VS Code MCP settings:
 
 &nbsp;
 
-Add to your Windsurf MCP config:
+First, enable MCP in **Windsurf Settings > Cascade > Model Context Protocol (MCP)**.
+
+Then add to `~/.codeium/windsurf/mcp_config.json`:
 
 ```json
 {
@@ -158,6 +167,8 @@ Add to your Windsurf MCP config:
 }
 ```
 
+Press the **refresh button** in Windsurf settings to load the server.
+
 </details>
 
 <details>
@@ -165,7 +176,20 @@ Add to your Windsurf MCP config:
 
 &nbsp;
 
-Use the same JSON config format. The server runs via stdio transport:
+The server uses stdio transport. Most MCP clients use this config format:
+
+```json
+{
+  "mcpServers": {
+    "icon-composer": {
+      "command": "npx",
+      "args": ["-y", "icon-composer-mcp"]
+    }
+  }
+}
+```
+
+Or run the server directly:
 
 ```bash
 npx -y icon-composer-mcp
