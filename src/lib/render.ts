@@ -61,13 +61,18 @@ const APPLE_PRESET_FILES: Record<ApplePresetName, string> = {
   'sine-gray': '6 - sine-gray.jpeg',
 };
 
-// Resolve path to bundled backgrounds directory
-// Works from both src/lib/ (dev) and dist/ (built)
-function getBackgroundsDir(): string {
-  const dir = path.dirname(new URL(import.meta.url).pathname);
-  const fromDist = path.join(dir, '..', 'backgrounds');
-  if (existsSync(fromDist)) return fromDist;
-  return path.join(dir, '..', '..', 'backgrounds');
+// Search paths for Apple preset backgrounds (from Icon Composer.app, not bundled)
+const BACKGROUNDS_SEARCH_PATHS = [
+  '/Applications/Icon Composer.app/Contents/Frameworks/IconComposerKit.framework/Versions/A/Resources/Backgrounds',
+  '/Applications/Xcode.app/Contents/Applications/Icon Composer.app/Contents/Frameworks/IconComposerKit.framework/Versions/A/Resources/Backgrounds',
+  '/Applications/Xcode-beta.app/Contents/Applications/Icon Composer.app/Contents/Frameworks/IconComposerKit.framework/Versions/A/Resources/Backgrounds',
+];
+
+function getBackgroundsDir(): string | null {
+  for (const p of BACKGROUNDS_SEARCH_PATHS) {
+    if (existsSync(p)) return p;
+  }
+  return null;
 }
 
 // Canvas background presets
@@ -104,8 +109,10 @@ export async function resolveCanvasBackground(bg: CanvasBackground, size: number
     }
 
     case 'apple-preset': {
+      const bgDir = getBackgroundsDir();
+      if (!bgDir) throw new Error('Apple preset backgrounds require Icon Composer.app. Install: brew install --cask icon-composer');
       const filename = APPLE_PRESET_FILES[bg.name];
-      const bgPath = path.join(getBackgroundsDir(), filename);
+      const bgPath = path.join(bgDir, filename);
       const imgBuf = await fs.readFile(bgPath);
       return sharp(imgBuf).resize(size, size, { fit: 'cover' }).png().toBuffer();
     }
@@ -163,8 +170,10 @@ export async function resolveCanvasBackground(bg: CanvasBackground, size: number
 
 // Get the native size of an apple preset background image
 async function getApplePresetNativeSize(name: ApplePresetName): Promise<number> {
+  const bgDir = getBackgroundsDir();
+  if (!bgDir) return 8192;
   const filename = APPLE_PRESET_FILES[name];
-  const bgPath = path.join(getBackgroundsDir(), filename);
+  const bgPath = path.join(bgDir, filename);
   const metadata = await sharp(bgPath).metadata();
   return metadata.width ?? 8192;
 }
@@ -198,7 +207,9 @@ export async function compositeOnBackground(
 
     // Match the non-preset behavior: icon is (zoom * 100%) of the output canvas.
     // Crop center of the 8192 bg to show a zoomed-in portion, then resize to canvas.
-    const bgPath = path.join(getBackgroundsDir(), APPLE_PRESET_FILES[canvasBg.name]);
+    const bgDir = getBackgroundsDir();
+    if (!bgDir) throw new Error('Apple preset backgrounds require Icon Composer.app. Install: brew install --cask icon-composer');
+    const bgPath = path.join(bgDir, APPLE_PRESET_FILES[canvasBg.name]);
     const bgRaw = await fs.readFile(bgPath);
     const bgMeta = await sharp(bgRaw).metadata();
     const bgNative = bgMeta.width ?? 8192;

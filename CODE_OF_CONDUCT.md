@@ -24,7 +24,7 @@ Examples of unacceptable behavior:
 
 ## Enforcement
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the project maintainer at **ethan@ethanbaker.com**. All complaints will be reviewed and investigated promptly and fairly.
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported via [GitHub Issues](https://github.com/ethbak/icon-composer-mcp/issues). All complaints will be reviewed and investigated promptly and fairly.
 
 ## Attribution
 
