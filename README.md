@@ -70,7 +70,7 @@ icon-composer export-marketing ./out/AppIcon.icon marketing.png
 ## Installation
 
 <details open>
-<summary>&nbsp;&nbsp;<b>Claude Code</b></summary>
+<summary>&nbsp;&nbsp;<img src="https://cdn.simpleicons.org/claude/D97757" alt="" width="16" height="16">&nbsp;<b>Claude Code</b></summary>
 
 &nbsp;
 
@@ -81,7 +81,7 @@ claude mcp add icon-composer -- npx -y icon-composer-mcp
 </details>
 
 <details>
-<summary>&nbsp;&nbsp;<b>Claude Desktop</b></summary>
+<summary>&nbsp;&nbsp;<img src="https://cdn.simpleicons.org/claude/D97757" alt="" width="16" height="16">&nbsp;<b>Claude Desktop</b></summary>
 
 &nbsp;
 
@@ -101,7 +101,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 </details>
 
 <details>
-<summary>&nbsp;&nbsp;<b>Cursor</b></summary>
+<summary>&nbsp;&nbsp;<img src="https://cdn.simpleicons.org/cursor" alt="" width="16" height="16">&nbsp;<b>Cursor</b></summary>
 
 &nbsp;
 
@@ -121,7 +121,7 @@ Add to your Cursor MCP config:
 </details>
 
 <details>
-<summary>&nbsp;&nbsp;<b>VS Code</b></summary>
+<summary>&nbsp;&nbsp;<img src="https://cdn.simpleicons.org/vscodium/2F80ED" alt="" width="16" height="16">&nbsp;<b>VS Code</b></summary>
 
 &nbsp;
 
@@ -141,7 +141,7 @@ Add to your VS Code MCP settings:
 </details>
 
 <details>
-<summary>&nbsp;&nbsp;<b>Windsurf</b></summary>
+<summary>&nbsp;&nbsp;<img src="https://cdn.simpleicons.org/windsurf" alt="" width="16" height="16">&nbsp;<b>Windsurf</b></summary>
 
 &nbsp;
 
