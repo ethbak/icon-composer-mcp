@@ -9,13 +9,13 @@
 <h1 align="center">icon-composer-mcp</h1>
 
 <p align="center">
-  CLI and MCP server for creating Apple .icon bundles with Liquid Glass effects (iOS 26+)
+  CLI and MCP server for creating images, icons, and logos with Liquid Glass effects (iOS 26+). Not affiliated with Apple .
 </p>
 
 <p align="center">
   <a href="https://www.npmjs.com/package/icon-composer-mcp"><img src="https://img.shields.io/npm/v/icon-composer-mcp" alt="npm version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/npm/l/icon-composer-mcp" alt="license"></a>
-  <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-blue" alt="platform">
+  <img src="https://img.shields.io/badge/platform-macOS-blue" alt="platform">
   <img src="https://img.shields.io/badge/MCP-compatible-green" alt="MCP compatible">
 </p>
 
@@ -36,36 +36,6 @@
 - **Full Liquid Glass** support: specular highlights, blur material, shadows, translucency
 - **Dark mode + appearance variants** with per-appearance fill specializations
 - **AI-agent ready**: 12 MCP tools + 3 workflow prompts with built-in instructions
-- **Cross-platform**: flat rendering everywhere, Liquid Glass on macOS with Icon Composer
-
-## How It Works
-
-<!-- TODO: Add a diagram or before/after showing the workflow -->
-
-<p align="center">
-  <img src="assets/how-it-works.png" alt="how it works" width="600">
-</p>
-
-1. **Provide a glyph** — any PNG or SVG logo/image
-2. **Create a `.icon` bundle** — sets background fill, layer scale, and glass effects
-3. **Apple's ictool renders Liquid Glass** — specular highlights, shadows, depth, and translucency
-4. **Export** — preview PNGs, App Store marketing icon, or the `.icon` bundle for Xcode
-
-## Quick Start
-
-```bash
-# Install
-npm install -g icon-composer-mcp
-
-# Create an icon
-icon-composer create logo.svg ./out --bg-color "#0A66C2"
-
-# Preview it
-icon-composer preview ./out/AppIcon.icon preview.png
-
-# Export for App Store
-icon-composer export-marketing ./out/AppIcon.icon marketing.png
-```
 
 ## Installation
 
@@ -209,10 +179,23 @@ icon-composer --help
 
 </details>
 
+## How It Works
+
+<!-- TODO: Add a diagram or before/after showing the workflow -->
+
+<p align="center">
+  <img src="assets/how-it-works.png" alt="how it works" width="600">
+</p>
+
+1. **Provide a glyph** — any PNG or SVG logo/image
+2. **Create a `.icon` bundle** — sets background fill, layer scale, and glass effects
+3. **Apple's ictool renders Liquid Glass** — specular highlights, shadows, depth, and translucency
+4. **Export** — preview PNGs, App Store marketing icon, or the `.icon` bundle for Xcode
+
 ## Requirements
 
 - **Node.js 18+**
-- **macOS** with [Icon Composer](https://developer.apple.com/icon-composer/) for Liquid Glass rendering (optional)
+- **macOS** with [Icon Composer](https://developer.apple.com/icon-composer/) for Liquid Glass rendering
   ```bash
   brew install --cask icon-composer
   ```
@@ -314,11 +297,8 @@ icon-composer render ./out/AppIcon.icon glass-preview.png
 
 ## Limitations
 
-- **Liquid Glass rendering requires macOS** with Apple's Icon Composer.app installed — flat rendering works everywhere
-- **ClearLight/ClearDark renditions** render against gray — Apple's glass transparency requires Metal GPU, not available via CLI
-- **blur-material effect** only visible against textured/gradient backgrounds, not solid colors
-- **visionOS and tvOS** use separate icon formats, not `.icon` bundles
-- **No per-locale icons** — the `.icon` format has no localization mechanism
+- **Liquid Glass rendering requires macOS** with Apple's Icon Composer.app installed. Flat rendering works everywhere.
+- **ClearLight/ClearDark renditions** render against gray. Apple's glass transparency requires Metal GPU, not available via CLI.
 
 ## Architecture
 
@@ -345,7 +325,3 @@ bun run build
 # Visual test gallery
 bun src/cli.ts visual-test --out ./gallery
 ```
-
-## License
-
-[MIT](LICENSE)
