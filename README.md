@@ -47,13 +47,21 @@ icon-composer export-marketing ./out/AppIcon.icon marketing.png
 
 ## Installation
 
-### Claude Code
+<details open>
+<summary>&nbsp;&nbsp;<b>Claude Code</b></summary>
+
+&nbsp;
 
 ```bash
 claude mcp add icon-composer -- npx -y icon-composer-mcp
 ```
 
-### Claude Desktop
+</details>
+
+<details>
+<summary>&nbsp;&nbsp;<b>Claude Desktop</b></summary>
+
+&nbsp;
 
 Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 
@@ -68,8 +76,12 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 }
 ```
 
+</details>
+
 <details>
-<summary>Cursor</summary>
+<summary>&nbsp;&nbsp;<b>Cursor</b></summary>
+
+&nbsp;
 
 Add to your Cursor MCP config:
 
@@ -87,7 +99,9 @@ Add to your Cursor MCP config:
 </details>
 
 <details>
-<summary>VS Code</summary>
+<summary>&nbsp;&nbsp;<b>VS Code</b></summary>
+
+&nbsp;
 
 Add to your VS Code MCP settings:
 
@@ -105,7 +119,29 @@ Add to your VS Code MCP settings:
 </details>
 
 <details>
-<summary>Other MCP clients</summary>
+<summary>&nbsp;&nbsp;<b>Windsurf</b></summary>
+
+&nbsp;
+
+Add to your Windsurf MCP config:
+
+```json
+{
+  "mcpServers": {
+    "icon-composer": {
+      "command": "npx",
+      "args": ["-y", "icon-composer-mcp"]
+    }
+  }
+}
+```
+
+</details>
+
+<details>
+<summary>&nbsp;&nbsp;<b>Other MCP clients</b></summary>
+
+&nbsp;
 
 Use the same JSON config format. The server runs via stdio transport:
 
@@ -115,12 +151,17 @@ npx -y icon-composer-mcp
 
 </details>
 
-### CLI Only
+<details>
+<summary>&nbsp;&nbsp;<b>CLI only (no MCP)</b></summary>
+
+&nbsp;
 
 ```bash
 npm install -g icon-composer-mcp
 icon-composer --help
 ```
+
+</details>
 
 ## Requirements
 
