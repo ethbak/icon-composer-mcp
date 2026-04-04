@@ -7,8 +7,8 @@ import {
   resolveCanvasBackground,
   compositeOnBackground,
   renderPreview,
-  resolveFill,
 } from '../../lib/render';
+import { resolveFill } from '../../lib/manifest';
 import { TEST_PNG } from '../helpers/fixtures';
 import type { IconManifest } from '../../types';
 

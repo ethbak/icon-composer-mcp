@@ -214,6 +214,55 @@ describe('addLayerToBundle', () => {
     expect(await assetExists(bundlePath, 'my_icon_2x.png')).toBe(true);
   });
 
+  test('valid image extensions (.png, .svg) — accepted', async () => {
+    const bundlePath = await createFixtureBundle(tmpDir, 'ExtPng');
+    const pngPath = await writeTempPng(tmpDir, 'valid.png');
+
+    const pngResult = await addLayerToBundle(defaultAddLayerParams({
+      bundle_path: bundlePath,
+      image_path: pngPath,
+      layer_name: 'valid-png',
+    }));
+    expect(isErrorResult(pngResult)).toBe(false);
+
+    const svgPath = await writeTempSvg(tmpDir, 'valid.svg');
+    const svgResult = await addLayerToBundle(defaultAddLayerParams({
+      bundle_path: bundlePath,
+      image_path: svgPath,
+      layer_name: 'valid-svg',
+    }));
+    expect(isErrorResult(svgResult)).toBe(false);
+  });
+
+  test('invalid image extension (.sh, .exe) — returns error', async () => {
+    const bundlePath = await createFixtureBundle(tmpDir, 'ExtBad');
+
+    // Create files with disallowed extensions
+    const shPath = path.join(tmpDir, 'evil.sh');
+    await fs.writeFile(shPath, '#!/bin/bash\necho pwned');
+
+    const shResult = await addLayerToBundle(defaultAddLayerParams({
+      bundle_path: bundlePath,
+      image_path: shPath,
+      layer_name: 'evil-sh',
+    }));
+    expect(isErrorResult(shResult)).toBe(true);
+    expect(responseText(shResult)).toContain('unsupported image extension');
+    expect(responseText(shResult)).toContain('.sh');
+
+    const exePath = path.join(tmpDir, 'evil.exe');
+    await fs.writeFile(exePath, Buffer.from('MZ'));
+
+    const exeResult = await addLayerToBundle(defaultAddLayerParams({
+      bundle_path: bundlePath,
+      image_path: exePath,
+      layer_name: 'evil-exe',
+    }));
+    expect(isErrorResult(exeResult)).toBe(true);
+    expect(responseText(exeResult)).toContain('unsupported image extension');
+    expect(responseText(exeResult)).toContain('.exe');
+  });
+
   test('empty bundle auto-creates group', async () => {
     // Create a bundle with zero groups
     const bundlePath = path.join(tmpDir, 'Empty.icon');
@@ -341,6 +390,42 @@ describe('removeFromBundle', () => {
 
     expect(isErrorResult(result)).toBe(true);
     expect(responseText(result)).toContain('out of range');
+  });
+
+  test('path traversal in image-name — does not delete files outside bundle', async () => {
+    // Create a bundle with a crafted manifest containing a traversal image-name
+    const bundlePath = path.join(tmpDir, 'Traversal.icon');
+    await fs.mkdir(path.join(bundlePath, 'Assets'), { recursive: true });
+
+    // Create a file outside the bundle that the traversal would target
+    const outsideFile = path.join(tmpDir, 'important.txt');
+    await fs.writeFile(outsideFile, 'do not delete me');
+
+    const manifest = {
+      groups: [
+        {
+          name: 'Evil',
+          layers: [{ 'image-name': '../important.txt', name: 'evil-layer' }],
+        },
+      ],
+      'supported-platforms': { squares: 'shared' as const },
+    };
+    await fs.writeFile(path.join(bundlePath, 'icon.json'), JSON.stringify(manifest, null, 2));
+
+    const result = await removeFromBundle({
+      bundle_path: bundlePath,
+      target: 'group',
+      group_index: 0,
+      cleanup_assets: true,
+    });
+
+    expect(isErrorResult(result)).toBe(false);
+
+    // The file outside the bundle must still exist
+    const stat = await fs.stat(outsideFile).catch(() => null);
+    expect(stat).not.toBeNull();
+    const content = await fs.readFile(outsideFile, 'utf-8');
+    expect(content).toBe('do not delete me');
   });
 
   test('target=layer without layer_index — returns error', async () => {

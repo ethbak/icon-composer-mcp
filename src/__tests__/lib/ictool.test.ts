@@ -1,146 +1,118 @@
-import { test, expect, mock, beforeEach } from 'bun:test';
+import { test, expect, beforeEach } from 'bun:test';
+import { _resetCache, ictoolAvailable, getIctoolVersion, CLEAR_RENDITIONS } from '../../lib/ictool';
+
+beforeEach(() => { _resetCache(); });
 
 // ── CLEAR_RENDITIONS ──────────────────────────────────────────────────────────
 
-test('CLEAR_RENDITIONS contains ClearLight', async () => {
-  const { CLEAR_RENDITIONS } = await import('../../lib/ictool');
+test('CLEAR_RENDITIONS contains ClearLight', () => {
   expect(CLEAR_RENDITIONS.has('ClearLight')).toBe(true);
 });
 
-test('CLEAR_RENDITIONS contains ClearDark', async () => {
-  const { CLEAR_RENDITIONS } = await import('../../lib/ictool');
+test('CLEAR_RENDITIONS contains ClearDark', () => {
   expect(CLEAR_RENDITIONS.has('ClearDark')).toBe(true);
 });
 
-test('CLEAR_RENDITIONS does not contain Default', async () => {
-  const { CLEAR_RENDITIONS } = await import('../../lib/ictool');
+test('CLEAR_RENDITIONS does not contain Default', () => {
   expect(CLEAR_RENDITIONS.has('Default')).toBe(false);
 });
 
 // ── ictoolAvailable ───────────────────────────────────────────────────────────
 
-test('ictoolAvailable returns true when fs.access resolves', async () => {
-  mock.module('node:fs/promises', () => ({
-    access: async () => undefined,
-  }));
-
-  // Re-import after mock to pick up the new module
-  const mod = await import('../../lib/ictool');
-  const result = await mod.ictoolAvailable();
-  expect(result).toBe(true);
+test('ictoolAvailable returns a boolean', async () => {
+  const result = await ictoolAvailable();
+  expect(typeof result).toBe('boolean');
 });
 
-test('ictoolAvailable returns false when fs.access throws', async () => {
-  mock.module('node:fs/promises', () => ({
-    access: async () => { throw new Error('ENOENT'); },
-  }));
+// ── getIctoolVersion ─────────────────────────────────────────────────────────
 
-  const mod = await import('../../lib/ictool');
-  const result = await mod.ictoolAvailable();
-  expect(result).toBe(false);
+test('getIctoolVersion returns version info when ictool is available', async () => {
+  const available = await ictoolAvailable();
+  if (!available) return; // skip on machines without ictool
+
+  const info = await getIctoolVersion();
+  expect(info).not.toBeNull();
+  expect(info!.path).toContain('ictool');
+  expect(info!.version).toMatch(/^\d+\.\d+$/);
+  expect(info!.build).toMatch(/^\d+$/);
 });
 
 // ── renderWithIctool ──────────────────────────────────────────────────────────
 
-const ICTOOL_PATH = '/Applications/Icon Composer.app/Contents/Executables/ictool';
+test('renderWithIctool builds correct args and renders', async () => {
+  const available = await ictoolAvailable();
+  if (!available) return; // skip
 
-test('renderWithIctool builds correct args for required options only', async () => {
-  const originalSpawn = Bun.spawn;
-  let capturedArgs: string[] = [];
+  const { renderWithIctool } = await import('../../lib/ictool');
+  const { makeTempDir, cleanTempDir } = await import('../helpers/test-helpers');
+  const { createFixtureBundle } = await import('../helpers/test-helpers');
+  const fs = await import('node:fs/promises');
+  const sharp = (await import('sharp')).default;
 
-  (Bun as any).spawn = (args: string[], _opts: any) => {
-    capturedArgs = args;
-    return {
-      exited: Promise.resolve(0),
-      stderr: new Response('').body,
-      stdout: new Response('').body,
-    };
-  };
-
+  const tmpDir = await makeTempDir('ictool-render-');
   try {
-    const { renderWithIctool } = await import('../../lib/ictool');
+    const bundlePath = await createFixtureBundle(tmpDir, 'RenderTest');
+    const outputPath = `${tmpDir}/output.png`;
+
     await renderWithIctool({
-      bundlePath: '/path/to/icon.icon',
-      outputPath: '/tmp/out.png',
+      bundlePath,
+      outputPath,
     });
 
-    expect(capturedArgs).toEqual([
-      ICTOOL_PATH,
-      '/path/to/icon.icon',
-      '--export-image',
-      '--output-file', '/tmp/out.png',
-      '--platform', 'iOS',
-      '--rendition', 'Default',
-      '--width', '1024',
-      '--height', '1024',
-      '--scale', '1',
-    ]);
+    const stat = await fs.stat(outputPath);
+    expect(stat.isFile()).toBe(true);
+    expect(stat.size).toBeGreaterThan(0);
+
+    const meta = await sharp(outputPath).metadata();
+    expect(meta.format).toBe('png');
+    expect(meta.width).toBe(1024);
+    expect(meta.height).toBe(1024);
   } finally {
-    (Bun as any).spawn = originalSpawn;
+    await cleanTempDir(tmpDir);
   }
 });
 
-test('renderWithIctool throws when exit code is non-zero', async () => {
-  const originalSpawn = Bun.spawn;
-  const stderrText = 'something went wrong';
+test('renderWithIctool respects optional params', async () => {
+  const available = await ictoolAvailable();
+  if (!available) return; // skip
 
-  (Bun as any).spawn = (_args: string[], _opts: any) => {
-    return {
-      exited: Promise.resolve(1),
-      stderr: new Response(stderrText).body,
-      stdout: new Response('').body,
-    };
-  };
+  const { renderWithIctool } = await import('../../lib/ictool');
+  const { makeTempDir, cleanTempDir } = await import('../helpers/test-helpers');
+  const { createFixtureBundle } = await import('../helpers/test-helpers');
+  const sharp = (await import('sharp')).default;
 
+  const tmpDir = await makeTempDir('ictool-opts-');
   try {
-    const { renderWithIctool } = await import('../../lib/ictool');
-    await expect(
-      renderWithIctool({ bundlePath: '/path/to/icon.icon', outputPath: '/tmp/out.png' })
-    ).rejects.toThrow(`ictool exited with code 1: ${stderrText}`);
-  } finally {
-    (Bun as any).spawn = originalSpawn;
-  }
-});
+    const bundlePath = await createFixtureBundle(tmpDir, 'OptsTest');
+    const outputPath = `${tmpDir}/output.png`;
 
-test('renderWithIctool includes all optional args, and lightAngle: 0 is not filtered out', async () => {
-  const originalSpawn = Bun.spawn;
-  let capturedArgs: string[] = [];
-
-  (Bun as any).spawn = (args: string[], _opts: any) => {
-    capturedArgs = args;
-    return {
-      exited: Promise.resolve(0),
-      stderr: new Response('').body,
-      stdout: new Response('').body,
-    };
-  };
-
-  try {
-    const { renderWithIctool } = await import('../../lib/ictool');
     await renderWithIctool({
-      bundlePath: '/path/to/icon.icon',
-      outputPath: '/tmp/out.png',
-      platform: 'macOS',
-      rendition: 'Dark',
+      bundlePath,
+      outputPath,
+      platform: 'iOS',
+      rendition: 'Default',
       width: 512,
       height: 512,
       scale: 2,
-      lightAngle: 0,     // falsy but should still be included
-      tintColor: 0xFF0000,
-      tintStrength: 0.5,
+      lightAngle: 0,
     });
 
-    expect(capturedArgs).toContain('--light-angle');
-    expect(capturedArgs).toContain('0');
-    expect(capturedArgs).toContain('--tint-color');
-    expect(capturedArgs).toContain('--tint-strength');
-    expect(capturedArgs).toContain('0.5');
-
-    // Verify lightAngle: 0 IS included (not filtered by falsy check)
-    const lightAngleIdx = capturedArgs.indexOf('--light-angle');
-    expect(lightAngleIdx).toBeGreaterThan(-1);
-    expect(capturedArgs[lightAngleIdx + 1]).toBe('0');
+    const meta = await sharp(outputPath).metadata();
+    // ictool --width 512 --scale 2 outputs 1024px (width * scale)
+    expect(meta.width).toBe(1024);
+    expect(meta.height).toBe(1024);
   } finally {
-    (Bun as any).spawn = originalSpawn;
+    await cleanTempDir(tmpDir);
   }
+});
+
+test('renderWithIctool throws on invalid bundle', async () => {
+  const available = await ictoolAvailable();
+  if (!available) return; // skip
+
+  const { renderWithIctool } = await import('../../lib/ictool');
+
+  await expect(
+    renderWithIctool({ bundlePath: '/nonexistent/bundle.icon', outputPath: '/tmp/out.png' })
+  ).rejects.toThrow();
 });

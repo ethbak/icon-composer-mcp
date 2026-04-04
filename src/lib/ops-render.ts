@@ -1,19 +1,15 @@
 import * as fs from 'node:fs/promises';
 import sharp from 'sharp';
 import { readIconBundle, saveManifest } from './bundle';
-import { renderPreview, resolveFill, compositeOnBackground, type CanvasBackground, type ApplePresetName } from './render';
+import { renderPreview, compositeOnBackground, type CanvasBackground, type ApplePresetName } from './render';
+import { resolveFill } from './manifest';
 import { ictoolAvailable, renderWithIctool, CLEAR_RENDITIONS } from './ictool';
 import { stripAlpha } from './image-utils';
-import type { IconManifest } from '../types';
+import type { IconManifest, McpResult } from '../types';
 
 // ictool and Icon Composer use the manifest scale values directly.
 // scale=1.0 renders at ~65% of icon area — this is Apple's native behavior.
 // Our flat renderer applies the same 0.65 factor to match.
-
-export interface McpResult {
-  content: [{ type: 'text'; text: string }];
-  isError?: true;
-}
 
 export interface ExportPreviewParams {
   bundle_path: string;
@@ -182,7 +178,6 @@ export async function exportPreview(params: ExportPreviewParams): Promise<McpRes
       buffer = await compositeOnBackground(buffer, canvasBg, params.size, iconSize);
     }
 
-    buffer = await stripAlpha(buffer);
     await fs.writeFile(params.output_path, buffer);
 
     return {
@@ -233,10 +228,6 @@ export async function renderLiquidGlass(params: RenderLiquidGlassParams): Promis
       const result = await compositeOnBackground(iconBuffer, canvasBg, canvasSize, iconSize);
       await fs.writeFile(params.output_path, result);
     }
-
-    // Strip alpha — icons should never have transparency in final output
-    const finalBuffer = await stripAlpha(await fs.readFile(params.output_path));
-    await fs.writeFile(params.output_path, finalBuffer);
 
     const stat = await fs.stat(params.output_path);
 

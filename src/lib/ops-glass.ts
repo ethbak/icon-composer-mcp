@@ -2,12 +2,8 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { solidFill, hexToIconColor } from './manifest';
 import { readIconBundle, saveManifest } from './bundle';
-import type { BlendMode } from '../types';
-
-export interface McpResult {
-  content: [{ type: 'text'; text: string }];
-  isError?: true;
-}
+import { toBlendMode } from '../types';
+import type { McpResult } from '../types';
 
 // ---------------------------------------------------------------------------
 // Parameter interfaces
@@ -106,7 +102,7 @@ export async function setGlassEffects(params: SetGlassParams): Promise<McpResult
     }
 
     if (params.opacity !== undefined) group.opacity = params.opacity;
-    if (params.blend_mode) group['blend-mode'] = params.blend_mode as BlendMode;
+    if (params.blend_mode) group['blend-mode'] = toBlendMode(params.blend_mode);
     if (params.lighting) group.lighting = params.lighting;
 
     await saveManifest(params.bundle_path, manifest);

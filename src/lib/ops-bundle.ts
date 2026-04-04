@@ -3,14 +3,7 @@ import * as path from 'node:path';
 import { createManifest, addGroup, addLayer } from './manifest';
 import { readIconBundle, writeIconBundle, saveManifest } from './bundle';
 import { sanitizeFilename } from './sanitize';
-import type { BlendMode } from '../types';
-
-// ── Standard MCP result type ──
-
-export interface McpResult {
-  content: [{ type: 'text'; text: string }];
-  isError?: true;
-}
+import { toBlendMode, type McpResult } from '../types';
 
 // ── Parameter interfaces ──
 
@@ -110,7 +103,17 @@ export async function addLayerToBundle(params: AddLayerParams): Promise<McpResul
 
     const imageBuffer = await fs.readFile(params.image_path);
     const safeName = sanitizeFilename(params.layer_name);
-    const imageName = `${safeName}${path.extname(params.image_path)}`;
+
+    const ALLOWED_IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.svg', '.webp', '.heic', '.heif'];
+    const ext = path.extname(params.image_path).toLowerCase();
+    if (!ALLOWED_IMAGE_EXTENSIONS.includes(ext)) {
+      return {
+        content: [{ type: 'text', text: `Error: unsupported image extension "${ext}". Allowed: ${ALLOWED_IMAGE_EXTENSIONS.join(', ')}` }],
+        isError: true,
+      };
+    }
+
+    const imageName = `${safeName}${ext}`;
     assets.set(imageName, imageBuffer);
 
     let group;
@@ -124,7 +127,7 @@ export async function addLayerToBundle(params: AddLayerParams): Promise<McpResul
       imageName,
       name: safeName,
       opacity: params.opacity,
-      blendMode: params.blend_mode as BlendMode,
+      blendMode: toBlendMode(params.blend_mode),
       glass: params.glass,
       scale: params.scale,
       offset: [params.offset_x, params.offset_y],
@@ -197,6 +200,7 @@ export async function removeFromBundle(params: RemoveParams): Promise<McpResult>
         }
       }
       for (const img of removedImages) {
+        if (path.basename(img) !== img) continue; // skip path-traversal attempts
         if (!stillReferenced.has(img)) {
           await fs.unlink(path.join(params.bundle_path, 'Assets', img)).catch(() => {});
         }

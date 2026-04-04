@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "icon-composer": {
+      "command": "node",
+      "args": ["dist/server.js"]
+    }
+  }
+}

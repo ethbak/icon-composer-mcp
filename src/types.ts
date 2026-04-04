@@ -12,6 +12,21 @@ export type BlendMode =
   | 'soft-light' | 'hard-light' | 'difference' | 'exclusion'
   | 'plus-darker' | 'plus-lighter';
 
+const VALID_BLEND_MODES: ReadonlySet<string> = new Set<BlendMode>([
+  'normal', 'multiply', 'screen', 'overlay',
+  'darken', 'lighten', 'color-dodge', 'color-burn',
+  'soft-light', 'hard-light', 'difference', 'exclusion',
+  'plus-darker', 'plus-lighter',
+]);
+
+/** Validate a string as a BlendMode, returning 'normal' if invalid. */
+export function toBlendMode(value: string | undefined): BlendMode {
+  if (value && VALID_BLEND_MODES.has(value)) {
+    return value as BlendMode;
+  }
+  return 'normal';
+}
+
 export type FillPreset = 'automatic' | 'system-dark' | 'system-light' | 'none';
 
 export interface SolidFill {
@@ -100,4 +115,11 @@ export interface IconManifest {
   fill?: FillValue;
   'fill-specializations'?: Specialization<FillValue>[];
   'color-space-for-untagged-svg-colors'?: ColorSpace;
+}
+
+// ── Standard MCP result type ──
+
+export interface McpResult {
+  content: [{ type: 'text'; text: string }];
+  isError?: true;
 }

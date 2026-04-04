@@ -2,15 +2,46 @@
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 import { createIcon, addLayerToBundle, removeFromBundle, inspectBundle } from './lib/ops-bundle';
 import { setGlassEffects, setAppearances, setFill, setLayerPosition, toggleFx } from './lib/ops-glass';
 import { exportPreview, renderLiquidGlass, exportMarketing } from './lib/ops-render';
 
-const server = new McpServer({
-  name: 'icon-composer',
-  version: '1.0.0',
-});
+const server = new McpServer(
+  {
+    name: 'icon-composer',
+    version: '1.0.0',
+  },
+  {
+    instructions: `You are connected to icon-composer-mcp, a server for creating Apple .icon bundles with Liquid Glass effects for iOS 26+.
+
+## Typical Workflow
+
+1. **create_icon** — Start here. Provide a foreground image (PNG or SVG) and a background color. Returns a .icon bundle path.
+2. **add_layer_to_icon** — Add additional layers (overlays, badges, backgrounds) to existing bundles.
+3. **set_fill** — Change background fill (solid color, gradient, automatic, or none).
+4. **set_glass_effects** — Configure Liquid Glass: specular highlights, blur material, shadows, translucency.
+5. **set_appearances** — Add dark mode or tinted mode overrides for the background fill or group properties.
+6. **export_preview** — Render a preview PNG. Uses Apple's ictool for Liquid Glass rendering when available, falls back to flat composite.
+7. **export_marketing** — Export a flat 1024x1024 PNG with no alpha channel for App Store Connect.
+
+## Key Concepts
+
+- A .icon bundle contains groups of layers. Each group has glass effects (specular, shadow, blur, translucency). Each layer has an image, scale, position, and opacity.
+- **scale=1.0** is the standard glyph size (~65% of icon area in Apple's renderer). Use 0.5 for smaller, 1.5+ for larger.
+- **Glass effects** only render visually when using ictool (macOS with Icon Composer.app installed). Flat previews show the composition without glass.
+- Always call **export_preview** after making changes so the user can see the result.
+- For App Store submission, use **export_marketing** to get an alpha-free PNG that won't be rejected (ITMS-90717).
+
+## Tips
+
+- SVG glyphs should use <path> elements, not <text> (Icon Composer warns on text elements).
+- When the user asks to "create an icon", start with create_icon, show a preview, then iterate on glass effects and appearance.
+- Use read_icon to inspect an existing bundle before modifying it.
+- set_layer_position adjusts glyph scale and offset within the icon.
+- toggle_fx quickly enables/disables all glass effects for comparison.`,
+  },
+);
 
 // ── Tool: create_icon ──
 server.tool(
@@ -219,10 +250,93 @@ server.tool(
   async (params) => exportMarketing(params),
 );
 
-// ── Start server ──
-async function main() {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-}
+// ── Prompts ──
 
-main().catch(console.error);
+server.prompt(
+  'create-app-icon',
+  'Create an app icon from a logo image with Liquid Glass effects',
+  {
+    image_path: z.string().describe('Path to the logo/glyph image (PNG or SVG)'),
+    output_dir: z.string().describe('Directory to save the .icon bundle'),
+    brand_color: z.string().describe('Primary brand color as hex (e.g. #0A66C2)'),
+    dark_color: z.string().optional().describe('Dark mode background color (optional)'),
+  },
+  async (params) => ({
+    messages: [{
+      role: 'user',
+      content: {
+        type: 'text',
+        text: `Create an Apple app icon with Liquid Glass effects using these details:
+- Logo/glyph image: ${params.image_path}
+- Output directory: ${params.output_dir}
+- Brand color: ${params.brand_color}${params.dark_color ? `\n- Dark mode color: ${params.dark_color}` : ''}
+
+Steps:
+1. Call create_icon with the image, output dir, and brand color as bg_color${params.dark_color ? `, dark_bg_color "${params.dark_color}"` : ''}
+2. Call export_preview to render a Liquid Glass preview and show it to me (this is the default — do NOT pass flat: true)
+3. Call export_preview with canvas_bg_color set to the brand color to show the icon on a matching background
+4. Ask if I want to adjust glass effects, scale, or colors
+5. When I'm happy, call export_marketing for the App Store PNG`,
+      },
+    }],
+  }),
+);
+
+server.prompt(
+  'add-dark-mode',
+  'Add dark mode appearance to an existing icon',
+  {
+    bundle_path: z.string().describe('Path to the .icon bundle'),
+    dark_color: z.string().describe('Dark mode background color as hex'),
+  },
+  async (params) => ({
+    messages: [{
+      role: 'user',
+      content: {
+        type: 'text',
+        text: `Add dark mode to the icon at ${params.bundle_path}:
+1. Call read_icon to see the current state
+2. Call set_appearances with target "fill", appearance "dark", bg_color "${params.dark_color}"
+3. Call export_preview with appearance "dark" to show the dark mode version
+4. Show both light and dark previews side by side for comparison`,
+      },
+    }],
+  }),
+);
+
+server.prompt(
+  'export-for-app-store',
+  'Export all required assets for App Store submission',
+  {
+    bundle_path: z.string().describe('Path to the .icon bundle'),
+    output_dir: z.string().describe('Directory for exported files'),
+  },
+  async (params) => ({
+    messages: [{
+      role: 'user',
+      content: {
+        type: 'text',
+        text: `Export App Store assets from ${params.bundle_path}:
+1. Call export_marketing with output_path "${params.output_dir}/marketing-1024.png" — this is the flat 1024x1024 PNG required by App Store Connect (no alpha channel)
+2. Call export_preview with size 512 to generate a preview for review
+3. If dark mode is configured, also export a dark mode preview
+4. Remind the user that the .icon bundle itself goes into the Xcode project's asset catalog`,
+      },
+    }],
+  }),
+);
+
+// ── Export for testing ──
+export { server };
+
+// ── Start server (only when run directly, not imported) ──
+// Check both Bun's import.meta.main and Node's argv pattern
+const isMain = (typeof globalThis.Bun !== 'undefined' && (import.meta as any).main)
+  || process.argv[1]?.replace(/\\/g, '/').match(/\/server\.(js|ts)$/);
+if (isMain) {
+  const transport = new StdioServerTransport();
+  server.connect(transport).catch((err) => {
+    process.stderr.write(`Fatal: could not connect transport: ${err}\n`);
+    process.exit(1);
+  });
+}
