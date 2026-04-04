@@ -21,6 +21,15 @@
 
 ---
 
+## Demo
+
+<!-- TODO: Add screenshot grid or GIF showing the tool in action -->
+<!-- Suggested: 3-4 rendered icons showing different styles (flat, glass, dark mode, marketing export) -->
+
+<p align="center">
+  <img src="assets/demo.png" alt="demo" width="600">
+</p>
+
 ## Key Features
 
 - **Create `.icon` bundles** programmatically from PNG or SVG glyphs
@@ -28,6 +37,19 @@
 - **Dark mode + appearance variants** with per-appearance fill specializations
 - **AI-agent ready**: 12 MCP tools + 3 workflow prompts with built-in instructions
 - **Cross-platform**: flat rendering everywhere, Liquid Glass on macOS with Icon Composer
+
+## How It Works
+
+<!-- TODO: Add a diagram or before/after showing the workflow -->
+
+<p align="center">
+  <img src="assets/how-it-works.png" alt="how it works" width="600">
+</p>
+
+1. **Provide a glyph** — any PNG or SVG logo/image
+2. **Create a `.icon` bundle** — sets background fill, layer scale, and glass effects
+3. **Apple's ictool renders Liquid Glass** — specular highlights, shadows, depth, and translucency
+4. **Export** — preview PNGs, App Store marketing icon, or the `.icon` bundle for Xcode
 
 ## Quick Start
 
@@ -48,7 +70,7 @@ icon-composer export-marketing ./out/AppIcon.icon marketing.png
 ## Installation
 
 <details open>
-<summary>&nbsp;&nbsp;<b>Claude Code</b></summary>
+<summary>&nbsp;&nbsp;<img src="https://cdn.simpleicons.org/claude/D97757" alt="" width="16" height="16">&nbsp;<b>Claude Code</b></summary>
 
 &nbsp;
 
@@ -59,7 +81,7 @@ claude mcp add icon-composer -- npx -y icon-composer-mcp
 </details>
 
 <details>
-<summary>&nbsp;&nbsp;<b>Claude Desktop</b></summary>
+<summary>&nbsp;&nbsp;<img src="https://cdn.simpleicons.org/claude/D97757" alt="" width="16" height="16">&nbsp;<b>Claude Desktop</b></summary>
 
 &nbsp;
 
@@ -79,7 +101,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 </details>
 
 <details>
-<summary>&nbsp;&nbsp;<b>Cursor</b></summary>
+<summary>&nbsp;&nbsp;<img src="https://cdn.simpleicons.org/cursor" alt="" width="16" height="16">&nbsp;<b>Cursor</b></summary>
 
 &nbsp;
 
@@ -99,7 +121,7 @@ Add to your Cursor MCP config:
 </details>
 
 <details>
-<summary>&nbsp;&nbsp;<b>VS Code</b></summary>
+<summary>&nbsp;&nbsp;<img src="https://cdn.simpleicons.org/vscodium/2F80ED" alt="" width="16" height="16">&nbsp;<b>VS Code</b></summary>
 
 &nbsp;
 
@@ -119,7 +141,7 @@ Add to your VS Code MCP settings:
 </details>
 
 <details>
-<summary>&nbsp;&nbsp;<b>Windsurf</b></summary>
+<summary>&nbsp;&nbsp;<img src="https://cdn.simpleicons.org/windsurf" alt="" width="16" height="16">&nbsp;<b>Windsurf</b></summary>
 
 &nbsp;
 
@@ -235,6 +257,8 @@ icon-composer glass ./out/AppIcon.icon --specular --shadow-kind layer-color --bl
 icon-composer preview ./out/AppIcon.icon preview.png
 ```
 
+<!-- TODO: Add screenshot of the output icon here -->
+
 ### Export for App Store
 
 ```bash
@@ -243,6 +267,34 @@ icon-composer export-marketing ./out/AppIcon.icon marketing.png
 
 # The .icon bundle goes into your Xcode project's asset catalog
 ```
+
+### Multi-layer icon with glass
+
+```bash
+# Create base icon
+icon-composer create background.svg ./out --bg-color "#1C1C2E"
+
+# Add foreground layers
+icon-composer add-layer ./out/AppIcon.icon glyph.svg --name glyph --opacity 0.8
+icon-composer add-layer ./out/AppIcon.icon badge.svg --name badge --create-group
+
+# Configure glass per group
+icon-composer glass ./out/AppIcon.icon --group-index 0 --specular --blur-material 0.3
+icon-composer glass ./out/AppIcon.icon --group-index 1 --specular --shadow-kind neutral
+
+# Render Liquid Glass
+icon-composer render ./out/AppIcon.icon glass-preview.png
+```
+
+<!-- TODO: Add screenshot showing multi-layer result -->
+
+## Limitations
+
+- **Liquid Glass rendering requires macOS** with Apple's Icon Composer.app installed — flat rendering works everywhere
+- **ClearLight/ClearDark renditions** render against gray — Apple's glass transparency requires Metal GPU, not available via CLI
+- **blur-material effect** only visible against textured/gradient backgrounds, not solid colors
+- **visionOS and tvOS** use separate icon formats, not `.icon` bundles
+- **No per-locale icons** — the `.icon` format has no localization mechanism
 
 ## Architecture
 
