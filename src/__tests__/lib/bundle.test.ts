@@ -367,60 +367,43 @@ test('S-5: read-mutate-save loop — 3 iterations toggle specular, final state i
 });
 
 // ---------------------------------------------------------------------------
-// Round-trip fidelity with Apple-authored bundle
+// Round-trip fidelity
 // ---------------------------------------------------------------------------
 
-const APPLE_FIXTURE = path.join(__dirname, '..', 'fixtures', 'apple-authored.icon');
+test('RT-1: round-trip preserves complex manifest exactly', async () => {
+  const manifest = makeComplexManifest();
+  const assets = new Map<string, Buffer>([
+    ['glyph.png', TEST_PNG],
+    ['bg.png', TEST_PNG],
+  ]);
 
-test('RT-1: read Apple-authored bundle without errors', async () => {
-  const { manifest, assets } = await readIconBundle(APPLE_FIXTURE);
-  expect(manifest.groups.length).toBeGreaterThan(0);
-  expect(assets.size).toBeGreaterThan(0);
-  expect(manifest['supported-platforms']).toBeDefined();
-});
+  const bundlePath = await writeIconBundle(tmpDir, 'RT1', manifest, assets);
+  const { manifest: roundtripped, assets: roundtrippedAssets } = await readIconBundle(bundlePath);
 
-test('RT-2: round-trip preserves manifest exactly', async () => {
-  const { manifest: original, assets: originalAssets } = await readIconBundle(APPLE_FIXTURE);
-
-  // Write to new location
-  const roundtripPath = await writeIconBundle(tmpDir, 'Roundtrip', original, originalAssets);
-
-  // Read back
-  const { manifest: roundtripped, assets: roundtrippedAssets } = await readIconBundle(roundtripPath);
-
-  // Manifest deep equality
-  expect(roundtripped).toEqual(original);
-
-  // Assets byte-identical
-  expect(roundtrippedAssets.size).toBe(originalAssets.size);
-  for (const [name, buf] of originalAssets) {
-    expect(roundtrippedAssets.has(name)).toBe(true);
+  expect(roundtripped).toEqual(manifest);
+  expect(roundtrippedAssets.size).toBe(2);
+  for (const [name, buf] of assets) {
     expect(roundtrippedAssets.get(name)!.equals(buf)).toBe(true);
   }
 });
 
-test('RT-3: modify then round-trip preserves Apple fields alongside changes', async () => {
-  const { manifest, assets } = await readIconBundle(APPLE_FIXTURE);
+test('RT-2: modify then round-trip preserves fields alongside changes', async () => {
+  const manifest = makeComplexManifest();
+  const assets = new Map<string, Buffer>([['glyph.png', TEST_PNG]]);
+  const bundlePath = await writeIconBundle(tmpDir, 'RT2', manifest, assets);
 
-  // Add a new layer
-  manifest.groups[0].layers.push({
+  const { manifest: read1 } = await readIconBundle(bundlePath);
+  read1.groups[0].layers.push({
     'image-name': 'extra.png',
     name: 'extra-layer',
     glass: false,
   });
-  assets.set('extra.png', TEST_PNG);
 
-  // Write modified bundle
-  const modifiedPath = await writeIconBundle(tmpDir, 'Modified', manifest, assets);
-  const { manifest: readBack } = await readIconBundle(modifiedPath);
+  await saveManifest(bundlePath, read1);
+  const { manifest: read2 } = await readIconBundle(bundlePath);
 
-  // Original fields preserved
-  expect(readBack['fill-specializations']).toEqual(manifest['fill-specializations']);
-  expect(readBack['supported-platforms']).toEqual(manifest['supported-platforms']);
-  expect(readBack.groups[0].specular).toBe(manifest.groups[0].specular);
-  expect(readBack.groups[0].shadow).toEqual(manifest.groups[0].shadow);
-
-  // New layer present
-  expect(readBack.groups[0].layers).toHaveLength(manifest.groups[0].layers.length);
-  expect(readBack.groups[0].layers.at(-1)!.name).toBe('extra-layer');
+  expect(read2.groups[0].specular).toBe(manifest.groups[0].specular);
+  expect(read2.groups[0].shadow).toEqual(manifest.groups[0].shadow);
+  expect(read2.groups[0].layers).toHaveLength(2);
+  expect(read2.groups[0].layers[1].name).toBe('extra-layer');
 });

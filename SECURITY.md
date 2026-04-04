@@ -12,7 +12,9 @@ If you discover a security vulnerability, please report it responsibly.
 
 **Do not open a public GitHub issue for security vulnerabilities.**
 
-Instead, please email **1ethanbaker@gmail.com** with:
+Instead, use [GitHub's private security reporting](https://github.com/ethbak/icon-composer-mcp/security/advisories/new) to submit a vulnerability report. This keeps the report private until a fix is available.
+
+Please include:
 
 - Description of the vulnerability
 - Steps to reproduce
