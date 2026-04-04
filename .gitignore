@@ -32,3 +32,12 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # Finder (MacOS) folder config
 .DS_Store
+
+# Dev-only files (keep locally, not in repo)
+CLAUDE.md
+TODO.md
+docs/
+scripts/
+index.ts
+gallery/
+.claude/
