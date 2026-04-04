@@ -1,11 +1,17 @@
 import * as fs from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import * as path from 'node:path';
 import sharp from 'sharp';
-import type { IconManifest, FillValue } from '../types';
+import type { IconManifest } from '../types';
+import { resolveFill } from './manifest';
 
 // Parse an Apple color string like "srgb:0.50000,0.00000,1.00000,1.00000" to RGBA
 function parseColorString(cs: string): { r: number; g: number; b: number; alpha: number } {
-  const parts = cs.split(':')[1].split(',').map(Number);
+  const fallback = { r: 255, g: 255, b: 255, alpha: 1 };
+  const parts = cs.split(':')[1]?.split(',').map(Number);
+  if (!parts || parts.length < 4 || parts.some(isNaN)) {
+    return fallback;
+  }
   return {
     r: Math.round(parts[0] * 255),
     g: Math.round(parts[1] * 255),
@@ -56,8 +62,12 @@ const APPLE_PRESET_FILES: Record<ApplePresetName, string> = {
 };
 
 // Resolve path to bundled backgrounds directory
+// Works from both src/lib/ (dev) and dist/ (built)
 function getBackgroundsDir(): string {
-  return path.join(path.dirname(new URL(import.meta.url).pathname), '..', '..', 'backgrounds');
+  const dir = path.dirname(new URL(import.meta.url).pathname);
+  const fromDist = path.join(dir, '..', 'backgrounds');
+  if (existsSync(fromDist)) return fromDist;
+  return path.join(dir, '..', '..', 'backgrounds');
 }
 
 // Canvas background presets
@@ -259,22 +269,6 @@ export async function compositeOnBackground(
   }
 
   return iconResized;
-}
-
-// Resolve the effective fill for a given appearance, respecting fill-specializations
-export function resolveFill(manifest: IconManifest, appearance?: 'dark' | 'tinted'): FillValue | undefined {
-  const specs = manifest['fill-specializations'];
-  if (specs && specs.length > 0) {
-    // Try exact appearance match first
-    if (appearance) {
-      const match = specs.find((s) => s.appearance === appearance);
-      if (match) return match.value;
-    }
-    // Fall back to default (entry with no appearance key)
-    const def = specs.find((s) => !s.appearance);
-    if (def) return def.value;
-  }
-  return manifest.fill;
 }
 
 // Generate a flat preview PNG by compositing layers

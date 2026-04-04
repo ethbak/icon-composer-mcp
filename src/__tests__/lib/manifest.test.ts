@@ -30,6 +30,26 @@ test('hexToIconColor with custom colorSpace', () => {
   expect(result.startsWith('display-p3:')).toBe(true);
 });
 
+test('hexToIconColor empty string returns black default', () => {
+  expect(hexToIconColor('')).toBe('srgb:0.00000,0.00000,0.00000,1.00000');
+});
+
+test('hexToIconColor single char returns black default', () => {
+  expect(hexToIconColor('#f')).toBe('srgb:0.00000,0.00000,0.00000,1.00000');
+});
+
+test('hexToIconColor two chars returns black default', () => {
+  expect(hexToIconColor('ab')).toBe('srgb:0.00000,0.00000,0.00000,1.00000');
+});
+
+test('hexToIconColor invalid hex chars returns black default', () => {
+  expect(hexToIconColor('#ZZZZZZ')).toBe('srgb:0.00000,0.00000,0.00000,1.00000');
+});
+
+test('hexToIconColor 4 chars returns black default', () => {
+  expect(hexToIconColor('#abcd')).toBe('srgb:0.00000,0.00000,0.00000,1.00000');
+});
+
 // solidFill
 test('solidFill returns correct object', () => {
   expect(solidFill('#FF0000')).toEqual({ solid: 'srgb:1.00000,0.00000,0.00000,1.00000' });

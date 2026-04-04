@@ -21,15 +21,15 @@
 ## P0 — Critical (Security & Compatibility)
 
 ### Security fixes
-- [ ] **Path traversal via layer_name** — `addLayerToBundle` constructs filenames from user input without sanitization. `../../etc/malicious.png` escapes the bundle directory. Fix: `path.basename()` + character whitelist on all user-supplied filenames.
-- [ ] **Asset size bomb** — `readIconBundle` reads all files in Assets/ into memory unconditionally. A 500MB PNG would exhaust memory. Fix: check `fs.stat().size` before reading, reject above configurable limit (default 20MB).
-- [ ] **Temp file leak** — `renderWithIctoolScaled` doesn't clean up temp files in `finally` block if ictool throws. Move all `unlink` calls to `finally`.
+- [x] **Path traversal via layer_name** — `addLayerToBundle` constructs filenames from user input without sanitization. `../../etc/malicious.png` escapes the bundle directory. Fix: `path.basename()` + character whitelist on all user-supplied filenames.
+- [x] **Asset size bomb** — `readIconBundle` reads all files in Assets/ into memory unconditionally. A 500MB PNG would exhaust memory. Fix: check `fs.stat().size` before reading, reject above configurable limit (default 20MB).
+- [x] **Temp file leak** — `renderWithIctoolScaled` doesn't clean up temp files in `finally` block if ictool throws. Move all `unlink` calls to `finally`.
 
 ### Apple compatibility
-- [ ] **Validate .icon bundles open in Apple's Icon Composer** — open our generated bundles in the real app and confirm they render correctly. This blocks everything.
+- [x] **Validate .icon bundles open in Apple's Icon Composer** — open our generated bundles in the real app and confirm they render correctly. This blocks everything.
 - [ ] **Round-trip fidelity** — read a bundle created by Apple's Icon Composer, modify it, write back. Verify we preserve all fields Apple sets (including any undocumented properties we might be dropping). Diff our output against Apple's.
-- [ ] **Alpha channel auto-strip** — App Store rejects icons with alpha channels (ITMS-90717). Strip alpha from all PNGs written to bundle. 10 lines of sharp code, saves every developer a deploy cycle.
-- [ ] **Flat 1024x1024 PNG export for App Store Connect** — App Store marketing icon is a separate flat PNG (no glass effects, no alpha). `icon-composer export-marketing` should produce this alongside the .icon bundle.
+- [x] **Alpha channel auto-strip** — App Store rejects icons with alpha channels (ITMS-90717). Strip alpha from all PNGs written to bundle. 10 lines of sharp code, saves every developer a deploy cycle.
+- [x] **Flat 1024x1024 PNG export for App Store Connect** — App Store marketing icon is a separate flat PNG (no glass effects, no alpha). `icon-composer export-marketing` should produce this alongside the .icon bundle.
 
 ---
 

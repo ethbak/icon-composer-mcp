@@ -1,0 +1,28 @@
+# Source (we ship dist/)
+src/
+tsconfig.json
+tsup.config.ts
+
+# Dev-only files
+CLAUDE.md
+TODO.md
+.claude/
+
+# Test files
+gallery/
+
+# Dev scripts and docs
+scripts/
+docs/
+
+# IDE / OS
+.idea/
+.DS_Store
+.vscode/
+
+# Build artifacts
+coverage/
+*.lcov
+*.tsbuildinfo
+dist/*.map
+dist/visual-test*

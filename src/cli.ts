@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 import { program } from 'commander';
 import { createIcon, addLayerToBundle, removeFromBundle, inspectBundle } from './lib/ops-bundle';
 import { setGlassEffects, setAppearances, setFill, setLayerPosition, toggleFx } from './lib/ops-glass';
@@ -356,6 +356,41 @@ program
         size: opts.size,
       }),
     );
+  });
+
+// ── doctor ──
+
+program
+  .command('doctor')
+  .description('Check system setup and dependencies')
+  .action(async () => {
+    const { ictoolAvailable, getIctoolVersion, getInstallMessage } = await import('./lib/ictool');
+    const os = await import('node:os');
+
+    console.log('icon-composer-mcp doctor\n');
+    console.log(`Platform: ${os.platform()} ${os.arch()}`);
+    console.log(`Node: ${process.version}`);
+
+    if (os.platform() !== 'darwin') {
+      console.log('\nIcon Composer.app is macOS-only.');
+      console.log('Bundle creation and flat previews work on any platform.');
+      console.log('Liquid Glass rendering requires macOS with Icon Composer installed.');
+      return;
+    }
+
+    const available = await ictoolAvailable();
+    if (!available) {
+      console.log('\nictool: NOT FOUND');
+      console.log('\n' + getInstallMessage());
+      process.exit(1);
+    }
+
+    const info = await getIctoolVersion();
+    if (info) {
+      console.log(`\nictool: ${info.path}`);
+      console.log(`Version: ${info.version} (build ${info.build})`);
+      console.log('\nAll dependencies found. Ready to use.');
+    }
   });
 
 // ── visual-test ──

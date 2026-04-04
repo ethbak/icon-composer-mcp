@@ -33,6 +33,9 @@ export function hexToIconColor(hex: string, colorSpace: string = 'srgb'): string
   if (hex.length === 3) {
     hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
   }
+  if ((hex.length !== 6) || !/^[0-9a-fA-F]{6}$/.test(hex)) {
+    return `${colorSpace}:0.00000,0.00000,0.00000,1.00000`;
+  }
   const r = parseInt(hex.slice(0, 2), 16) / 255;
   const g = parseInt(hex.slice(2, 4), 16) / 255;
   const b = parseInt(hex.slice(4, 6), 16) / 255;
