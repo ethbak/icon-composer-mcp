@@ -104,3 +104,22 @@ bun --hot ./index.ts
 ```
 
 For more information, read the Bun API docs in `node_modules/bun-types/docs/**.mdx`.
+
+## Project Context
+
+- **Project**: icon-composer-mcp — CLI and MCP server for Apple .icon bundle creation (Liquid Glass, iOS 26+)
+- **Stack**: Bun + TypeScript + sharp + Commander.js + MCP SDK
+- **Architecture**: CLI-first — `src/lib/` (pure library) → `src/lib/ops-*.ts` (operations) → `src/cli.ts` (Commander.js, 12 subcommands) → `src/server.ts` (thin MCP wrapper, 216 lines)
+- **Test harness**: `src/visual-test.ts` — 73 visual test cases with HTML gallery at `tools/visual-test.html`
+- **Competitive position**: zero direct competitors for programmatic .icon bundle creation
+
+## Lessons Learned
+
+<!-- Updated by dream-cycle agent. Do not edit manually. -->
+
+- [2026-04-01] ictool squircle crop: use SAFE_RATIO=0.46 to crop iOS rounded shape for content-only preview. Skip crop when canvas background is used (keep full icon shape). Scale correction is 1.54x, applied ONLY in canvas/preset renders (renderWithIctoolScaled) — never in manifest or crop path.
+- [2026-04-01] Flat renderer auto-trims transparent padding so scale=1.0 fills canvas based on visible content. Test glyphs should fill their full SVG dimensions (r=256 in 512x512) with no transparent padding to get predictable scale behavior.
+- [2026-04-01] Apple preset backgrounds: center-crop 20% of 8192px JPEG for natural zoom level. Composite icon at same size as regular canvas backgrounds.
+- [2026-04-01] Critical validation required before shipping: generated .icon bundles must open and render correctly in Apple's Icon Composer.app. All development is based on ictool CLI behavior — no confirmation yet that the GUI app accepts our manifest format. Validate this FIRST before any feature release.
+- [2026-04-01] P0 security issues (unfixed): (1) path traversal via layer_name in addLayerToBundle — fix with path.basename() + character whitelist; (2) asset size bomb in readIconBundle — add fs.stat().size check, reject above 20MB; (3) temp file leak in renderWithIctoolScaled error path — move unlink calls to finally block.
+- [2026-04-01] TODO.md is the canonical backlog — prioritized P0/P1/P2/P3. Biggest schema gap: layer glass-specializations, opacity-specializations, and blend-mode-specializations are used in virtually every real production icon but are not yet exposed via CLI or MCP tools. Next major feature work should start here, after P0 security and compatibility blockers are resolved.

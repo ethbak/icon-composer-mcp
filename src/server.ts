@@ -5,7 +5,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod/v4';
 import { createIcon, addLayerToBundle, removeFromBundle, inspectBundle } from './lib/ops-bundle';
 import { setGlassEffects, setAppearances, setFill, setLayerPosition, toggleFx } from './lib/ops-glass';
-import { exportPreview, renderLiquidGlass } from './lib/ops-render';
+import { exportPreview, renderLiquidGlass, exportMarketing } from './lib/ops-render';
 
 const server = new McpServer({
   name: 'icon-composer',
@@ -22,7 +22,7 @@ server.tool(
     bundle_name: z.string().default('AppIcon').describe('Name for the .icon bundle (without extension)'),
     bg_color: z.string().describe('Background color as hex (e.g. #0A66C2)'),
     dark_bg_color: z.optional(z.string()).describe('Dark mode background color as hex'),
-    glyph_scale: z.number().min(0.1).max(1.0).default(0.65).describe('Scale of foreground glyph (0.1-1.0, default 0.65)'),
+    glyph_scale: z.number().min(0.1).max(2.0).default(1.0).describe('Scale of foreground glyph (0.1-2.0, default 1.0 fills ~65% of icon area in Icon Composer)'),
     specular: z.boolean().default(true).describe('Enable specular highlights (Liquid Glass)'),
     shadow_kind: z.enum(['neutral', 'layer-color', 'none']).default('layer-color').describe('Shadow type'),
     shadow_opacity: z.number().min(0).max(1).default(0.5).describe('Shadow opacity'),
@@ -205,6 +205,18 @@ server.tool(
     zoom: z.number().min(0.1).max(3.0).default(1.0).describe('Zoom level — icon size relative to canvas (1.0 = full canvas, 0.5 = half size)'),
   },
   async (params) => renderLiquidGlass(params),
+);
+
+// ── Tool: export_marketing ──
+server.tool(
+  'export_marketing',
+  'Export a flat marketing PNG for App Store Connect. No Liquid Glass effects, no alpha channel. Produces a 1024x1024 (default) opaque PNG ready for upload.',
+  {
+    bundle_path: z.string().describe('Path to .icon bundle'),
+    output_path: z.string().describe('Output path for the PNG file'),
+    size: z.number().min(16).max(2048).default(1024).describe('Output size in pixels (default 1024)'),
+  },
+  async (params) => exportMarketing(params),
 );
 
 // ── Start server ──

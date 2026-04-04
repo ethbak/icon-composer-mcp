@@ -228,7 +228,18 @@ export async function compositeOnBackground(
       .toBuffer();
   }
 
-  const offset = Math.round((canvasSize - actualIconSize) / 2);
+  let offset = Math.round((canvasSize - actualIconSize) / 2);
+
+  // When zoomed > 1.0, the icon is larger than the canvas. Crop the center
+  // of the icon to canvas size so sharp can composite it.
+  if (actualIconSize > canvasSize) {
+    const cropOffset = Math.round((actualIconSize - canvasSize) / 2);
+    iconResized = await sharp(iconResized)
+      .extract({ left: cropOffset, top: cropOffset, width: canvasSize, height: canvasSize })
+      .png()
+      .toBuffer();
+    offset = 0;
+  }
 
   if (bgBuffer) {
     return sharp(bgBuffer)
@@ -238,7 +249,7 @@ export async function compositeOnBackground(
   }
 
   // No background — just return the icon (possibly resized onto transparent canvas)
-  if (actualIconSize !== canvasSize) {
+  if (offset !== 0) {
     return sharp({
       create: { width: canvasSize, height: canvasSize, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } },
     })
@@ -247,7 +258,7 @@ export async function compositeOnBackground(
       .toBuffer();
   }
 
-  return iconBuffer;
+  return iconResized;
 }
 
 // Resolve the effective fill for a given appearance, respecting fill-specializations
@@ -339,9 +350,13 @@ export async function renderPreview(
       const scale = pos?.scale ?? 1.0;
       const [offX, offY] = pos?.['translation-in-points'] ?? [0, 0];
 
+      // Apple's ictool/Icon Composer renders scale=1.0 at ~39% of the output
+      // canvas (65% of icon area × 60% squircle inset). Our flat renderer must
+      // match this so glyph sizes are consistent across all outputs.
+      const APPLE_NATIVE_SCALE = 0.39;
+
       // Detect actual content bounds by trimming transparent pixels.
-      // Scale is relative to visible content, not file dimensions —
-      // scale=1.0 means the content's longest dimension fills the icon.
+      // This compensates for SVGs/PNGs with transparent padding.
       const origMeta = await sharp(assetBuffer).metadata();
       const origMax = Math.max(origMeta.width ?? 1, origMeta.height ?? 1);
       let contentRatio = 1.0;
@@ -353,7 +368,7 @@ export async function renderPreview(
         // trim() fails on fully transparent or single-color images — use 1.0
       }
 
-      const layerSize = Math.round(size * scale / contentRatio);
+      const layerSize = Math.round(size * scale * APPLE_NATIVE_SCALE / contentRatio);
       let layerImage = sharp(assetBuffer).resize(layerSize, layerSize, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } });
 
       if (layerOpacity < 1.0) {

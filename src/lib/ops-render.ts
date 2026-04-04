@@ -1,50 +1,14 @@
 import * as fs from 'node:fs/promises';
 import sharp from 'sharp';
 import { readIconBundle, saveManifest } from './bundle';
-import { renderPreview, compositeOnBackground, type CanvasBackground, type ApplePresetName } from './render';
+import { renderPreview, resolveFill, compositeOnBackground, type CanvasBackground, type ApplePresetName } from './render';
 import { ictoolAvailable, renderWithIctool, CLEAR_RENDITIONS } from './ictool';
+import { stripAlpha } from './image-utils';
 import type { IconManifest } from '../types';
 
-// Apple's ictool scale=1.0 renders glyphs at ~65% of icon area.
-// Users expect scale=1.0 to fill. This factor corrects the difference.
-const ICTOOL_SCALE_FACTOR = 1.54;
-
-// Temporarily scale up layer positions in a manifest for ictool rendering,
-// then restore after render. This makes user-facing scale values consistent
-// between flat renderer and ictool without permanently modifying the bundle.
-async function renderWithIctoolScaled(
-  bundlePath: string,
-  options: Parameters<typeof renderWithIctool>[0]
-): Promise<void> {
-  const { manifest } = await readIconBundle(bundlePath);
-  const origScales: number[] = [];
-
-  // Scale up all layer positions
-  for (const group of manifest.groups) {
-    for (const layer of group.layers) {
-      if (layer.position) {
-        origScales.push(layer.position.scale);
-        layer.position.scale *= ICTOOL_SCALE_FACTOR;
-      }
-    }
-  }
-
-  await saveManifest(bundlePath, manifest);
-  try {
-    await renderWithIctool(options);
-  } finally {
-    // Restore original scales
-    let i = 0;
-    for (const group of manifest.groups) {
-      for (const layer of group.layers) {
-        if (layer.position && i < origScales.length) {
-          layer.position.scale = origScales[i++];
-        }
-      }
-    }
-    await saveManifest(bundlePath, manifest);
-  }
-}
+// ictool and Icon Composer use the manifest scale values directly.
+// scale=1.0 renders at ~65% of icon area — this is Apple's native behavior.
+// Our flat renderer applies the same 0.65 factor to match.
 
 export interface McpResult {
   content: [{ type: 'text'; text: string }];
@@ -114,41 +78,95 @@ export async function exportPreview(params: ExportPreviewParams): Promise<McpRes
       const canvasBg = resolveCanvasBackgroundParam(params);
       const hasCanvas = canvasBg.type !== 'none' || params.zoom !== 1.0;
 
-      if (hasCanvas) {
-        // Keep the icon shape (squircle) — it sits on the canvas background
-        const tmpPath = params.output_path + '.ictool.png';
-        await renderWithIctoolScaled(params.bundle_path, {
+      const tmpPath = params.output_path + '.ictool.png';
+      try {
+        await renderWithIctool({
           bundlePath: params.bundle_path,
           outputPath: tmpPath,
           rendition,
           width: params.size,
           height: params.size,
         });
-        buffer = await fs.readFile(tmpPath);
-        await fs.unlink(tmpPath).catch(() => {});
-      } else {
-        // No canvas — crop out the squircle shape to show just the icon content.
-        // The squircle insets ~27% from each edge, so the safe center is ~46%.
-        // Render at ceil(target / 0.46) so we only downscale (no quality loss).
-        const SAFE_RATIO = 0.46;
-        const renderSize = Math.ceil(params.size / SAFE_RATIO);
-        const tmpPath = params.output_path + '.ictool.png';
-        await renderWithIctool({
-          bundlePath: params.bundle_path,
-          outputPath: tmpPath,
-          rendition,
-          width: renderSize,
-          height: renderSize,
-        });
         const raw = await fs.readFile(tmpPath);
+
+        if (hasCanvas) {
+          // Canvas will be composited later — keep full squircle
+          buffer = raw;
+        } else {
+          // No canvas — glass glyph without squircle outline.
+          // 1. Scale down glyph in manifest (smaller relative to app outline)
+          // 2. Render ictool at bigger size (outline pushed outside crop zone)
+          // 3. Crop center at target size — outline gone, glyph at correct px
+          // The two factors cancel: glyph pixels = same as normal render.
+          const INSCRIBED_RATIO = 0.55;
+          const renderSize = Math.ceil(params.size / INSCRIBED_RATIO);
+
+          // Temporarily shrink layer scales in the manifest
+          const { manifest } = await readIconBundle(params.bundle_path);
+          const origScales: number[] = [];
+          for (const group of manifest.groups) {
+            for (const layer of group.layers) {
+              const pos = layer.position ?? { scale: 1.0, 'translation-in-points': [0, 0] as [number, number] };
+              if (!layer.position) layer.position = pos;
+              origScales.push(pos.scale);
+              pos.scale *= INSCRIBED_RATIO;
+            }
+          }
+          await saveManifest(params.bundle_path, manifest);
+
+          const tmpLarge = params.output_path + '.ictool-large.png';
+          try {
+            await renderWithIctool({
+              bundlePath: params.bundle_path,
+              outputPath: tmpLarge,
+              rendition,
+              width: renderSize,
+              height: renderSize,
+            });
+            const largeRaw = await fs.readFile(tmpLarge);
+
+            // Crop center at target size — squircle outline is outside
+            const cropOffset = Math.round((renderSize - params.size) / 2);
+            const cropped = await sharp(largeRaw)
+              .extract({ left: cropOffset, top: cropOffset, width: params.size, height: params.size })
+              .png()
+              .toBuffer();
+
+            // Composite onto fill-color canvas
+            const fill = resolveFill(manifest, params.appearance);
+            let bgColor = { r: 255, g: 255, b: 255 };
+            if (fill && typeof fill === 'object' && 'solid' in fill) {
+              const parts = fill.solid.split(':')[1]?.split(',').map(Number);
+              if (parts && parts.length >= 3) {
+                bgColor = {
+                  r: Math.round(parts[0] * 255),
+                  g: Math.round(parts[1] * 255),
+                  b: Math.round(parts[2] * 255),
+                };
+              }
+            }
+            buffer = await sharp({
+              create: { width: params.size, height: params.size, channels: 4, background: { ...bgColor, alpha: 255 } },
+            })
+              .composite([{ input: cropped, left: 0, top: 0 }])
+              .png()
+              .toBuffer();
+          } finally {
+            // Restore original scales
+            let i = 0;
+            for (const group of manifest.groups) {
+              for (const layer of group.layers) {
+                if (layer.position && i < origScales.length) {
+                  layer.position.scale = origScales[i++];
+                }
+              }
+            }
+            await saveManifest(params.bundle_path, manifest);
+            await fs.unlink(tmpLarge).catch(() => {});
+          }
+        }
+      } finally {
         await fs.unlink(tmpPath).catch(() => {});
-        const cropOffset = Math.round((renderSize - renderSize * SAFE_RATIO) / 2);
-        const cropSize = Math.round(renderSize * SAFE_RATIO);
-        buffer = await sharp(raw)
-          .extract({ left: cropOffset, top: cropOffset, width: cropSize, height: cropSize })
-          .resize(params.size, params.size, { kernel: 'lanczos3' })
-          .png()
-          .toBuffer();
       }
       renderer = 'liquid-glass';
     } else {
@@ -164,6 +182,7 @@ export async function exportPreview(params: ExportPreviewParams): Promise<McpRes
       buffer = await compositeOnBackground(buffer, canvasBg, params.size, iconSize);
     }
 
+    buffer = await stripAlpha(buffer);
     await fs.writeFile(params.output_path, buffer);
 
     return {
@@ -184,7 +203,7 @@ export async function renderLiquidGlass(params: RenderLiquidGlassParams): Promis
       };
     }
 
-    await renderWithIctoolScaled(params.bundle_path, {
+    await renderWithIctool({
       bundlePath: params.bundle_path,
       outputPath: params.output_path,
       platform: params.platform,
@@ -215,10 +234,59 @@ export async function renderLiquidGlass(params: RenderLiquidGlassParams): Promis
       await fs.writeFile(params.output_path, result);
     }
 
+    // Strip alpha — icons should never have transparency in final output
+    const finalBuffer = await stripAlpha(await fs.readFile(params.output_path));
+    await fs.writeFile(params.output_path, finalBuffer);
+
     const stat = await fs.stat(params.output_path);
 
     return {
       content: [{ type: 'text', text: `Rendered Liquid Glass preview to ${params.output_path} (${params.width}x${params.height}@${params.scale}x, ${params.rendition}, zoom: ${params.zoom}x, ${(stat.size / 1024).toFixed(1)} KB)` }],
+    };
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    return { content: [{ type: 'text', text: `Error: ${msg}` }], isError: true };
+  }
+}
+
+export interface ExportMarketingParams {
+  bundle_path: string;
+  output_path: string;
+  size?: number;
+}
+
+/**
+ * Export a flat 1024x1024 (default) marketing PNG for App Store Connect.
+ * No glass effects, no alpha channel.
+ */
+export async function exportMarketing(params: ExportMarketingParams): Promise<McpResult> {
+  try {
+    const size = params.size ?? 1024;
+    const { manifest, assets } = await readIconBundle(params.bundle_path);
+
+    // Render flat preview (no ictool, no glass)
+    let buffer = await renderPreview(manifest, assets, size);
+
+    // Determine background color from manifest fill for alpha flattening
+    const fill = resolveFill(manifest);
+    let bgColor = { r: 255, g: 255, b: 255 };
+    if (fill && typeof fill === 'object' && 'solid' in fill) {
+      const parts = fill.solid.split(':')[1]?.split(',').map(Number);
+      if (parts && parts.length >= 3) {
+        bgColor = {
+          r: Math.round(parts[0] * 255),
+          g: Math.round(parts[1] * 255),
+          b: Math.round(parts[2] * 255),
+        };
+      }
+    }
+
+    buffer = await stripAlpha(buffer, bgColor);
+    await fs.writeFile(params.output_path, buffer);
+
+    const stat = await fs.stat(params.output_path);
+    return {
+      content: [{ type: 'text', text: `Exported marketing icon to ${params.output_path} (${size}x${size}, no alpha, ${(stat.size / 1024).toFixed(1)} KB)` }],
     };
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Unknown error';

@@ -41,7 +41,7 @@ function defaultCreateParams(overrides: Partial<CreateIconParams> = {}): CreateI
     output_dir: tmpDir,
     bundle_name: 'TestIcon',
     bg_color: '#0A66C2',
-    glyph_scale: 0.65,
+    glyph_scale: 1.0,
     specular: true,
     shadow_kind: 'layer-color',
     shadow_opacity: 0.5,
@@ -175,6 +175,43 @@ describe('addLayerToBundle', () => {
     expect(manifest.groups).toHaveLength(2);
     expect(manifest.groups[1].name).toBe('background');
     expect(manifest.groups[1].layers[0].name).toBe('background');
+  });
+
+  test('path traversal in layer_name — sanitized to safe filename', async () => {
+    const bundlePath = await createFixtureBundle(tmpDir, 'Traversal');
+    const pngPath = await writeTempPng(tmpDir, 'evil.png');
+
+    const result = await addLayerToBundle(defaultAddLayerParams({
+      bundle_path: bundlePath,
+      image_path: pngPath,
+      layer_name: '../../etc/passwd',
+      group_index: 0,
+    }));
+
+    expect(isErrorResult(result)).toBe(false);
+
+    // Asset should be written as "passwd.png" inside Assets/, not escaped
+    expect(await assetExists(bundlePath, 'passwd.png')).toBe(true);
+
+    const manifest = await readManifest(bundlePath);
+    const addedLayer = manifest.groups[0].layers[1];
+    expect(addedLayer['image-name']).toBe('passwd.png');
+    expect(addedLayer.name).toBe('passwd');
+  });
+
+  test('special characters in layer_name — replaced with underscore', async () => {
+    const bundlePath = await createFixtureBundle(tmpDir, 'SpecialChars');
+    const pngPath = await writeTempPng(tmpDir, 'icon.png');
+
+    const result = await addLayerToBundle(defaultAddLayerParams({
+      bundle_path: bundlePath,
+      image_path: pngPath,
+      layer_name: 'my icon@2x',
+      group_index: 0,
+    }));
+
+    expect(isErrorResult(result)).toBe(false);
+    expect(await assetExists(bundlePath, 'my_icon_2x.png')).toBe(true);
   });
 
   test('empty bundle auto-creates group', async () => {

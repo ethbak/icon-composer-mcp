@@ -68,7 +68,7 @@ export async function createQuickIcon(options: {
   addLayer(group, {
     imageName: foregroundName,
     name: 'glyph',
-    scale: options.glyphScale ?? 0.65,
+    scale: options.glyphScale ?? 1.0,
     glass: true,
   });
 

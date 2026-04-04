@@ -6,6 +6,7 @@ import {
   resolveCanvasBackgroundParam,
   exportPreview,
   renderLiquidGlass,
+  exportMarketing,
 } from '../../lib/ops-render';
 import { ictoolAvailable } from '../../lib/ictool';
 import {
@@ -319,6 +320,69 @@ describe('renderLiquidGlass', () => {
 
     expect(isErrorResult(result)).toBe(true);
     expect(responseText(result)).toContain('Icon Composer.app not found');
+  });
+});
+
+// --- exportMarketing ---
+
+describe('exportMarketing', () => {
+  let tmpDir: string;
+
+  beforeEach(async () => {
+    tmpDir = await makeTempDir('ops-render-marketing-');
+  });
+
+  afterEach(async () => {
+    await cleanTempDir(tmpDir);
+  });
+
+  test('produces 1024x1024 PNG with no alpha', async () => {
+    const bundlePath = await createFixtureBundle(tmpDir, 'marketing-test');
+    const outputPath = path.join(tmpDir, 'marketing.png');
+
+    const result = await exportMarketing({
+      bundle_path: bundlePath,
+      output_path: outputPath,
+    });
+
+    expect(isErrorResult(result)).toBe(false);
+    expect(responseText(result)).toContain('no alpha');
+
+    const buf = await fs.readFile(outputPath);
+    const meta = await sharp(buf).metadata();
+    expect(meta.format).toBe('png');
+    expect(meta.width).toBe(1024);
+    expect(meta.height).toBe(1024);
+    expect(meta.channels).toBe(3);
+  });
+
+  test('respects custom size', async () => {
+    const bundlePath = await createFixtureBundle(tmpDir, 'marketing-size');
+    const outputPath = path.join(tmpDir, 'marketing-512.png');
+
+    const result = await exportMarketing({
+      bundle_path: bundlePath,
+      output_path: outputPath,
+      size: 512,
+    });
+
+    expect(isErrorResult(result)).toBe(false);
+
+    const buf = await fs.readFile(outputPath);
+    const meta = await sharp(buf).metadata();
+    expect(meta.width).toBe(512);
+    expect(meta.height).toBe(512);
+    expect(meta.channels).toBe(3);
+  });
+
+  test('returns error for invalid bundle', async () => {
+    const result = await exportMarketing({
+      bundle_path: '/nonexistent/bundle.icon',
+      output_path: path.join(tmpDir, 'bad.png'),
+    });
+
+    expect(isErrorResult(result)).toBe(true);
+    expect(responseText(result)).toContain('Error:');
   });
 });
 
