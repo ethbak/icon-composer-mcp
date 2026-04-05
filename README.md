@@ -23,11 +23,12 @@
 
 ## Demo
 
-<!-- TODO: Add screenshot grid or GIF showing the tool in action -->
-<!-- Suggested: 3-4 rendered icons showing different styles (flat, glass, dark mode, marketing export) -->
-
 <p align="center">
-  <img src="assets/demo.png" alt="demo" width="600">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/demo-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="assets/demo-light.png">
+    <img alt="demo" src="assets/demo-light.png" width="650">
+  </picture>
 </p>
 
 ## Key Features
