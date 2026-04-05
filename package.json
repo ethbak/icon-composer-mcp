@@ -1,0 +1,81 @@
+{
+  "name": "icon-composer-mcp",
+  "version": "1.0.0",
+  "description": "CLI and MCP server for creating Apple .icon bundles with Liquid Glass effects (iOS 26+)",
+  "type": "module",
+  "main": "dist/server.js",
+  "exports": {
+    ".": "./dist/server.js",
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "icon-composer": "dist/cli.js",
+    "icon-composer-mcp": "dist/server.js"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup && chmod +x dist/cli.js dist/server.js",
+    "prepublishOnly": "tsup && chmod +x dist/cli.js dist/server.js",
+    "start": "node dist/server.js",
+    "cli": "node dist/cli.js",
+    "dev": "bun run src/server.ts",
+    "dev:cli": "bun run src/cli.ts",
+    "test": "bun test",
+    "test:mcp": "vitest run",
+    "doctor": "node dist/cli.js doctor"
+  },
+  "mcpName": "io.github.ethbak/icon-composer-mcp",
+  "keywords": [
+    "icon",
+    "apple",
+    "ios",
+    "liquid-glass",
+    "icon-composer",
+    "mcp",
+    "model-context-protocol",
+    "modelcontextprotocol",
+    "claude",
+    "ai",
+    "llm",
+    "xcode",
+    "app-icon",
+    "squircle",
+    "mcp-server"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ethbak/icon-composer-mcp"
+  },
+  "homepage": "https://github.com/ethbak/icon-composer-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/ethbak/icon-composer-mcp/issues"
+  },
+  "author": "Ethan Baker",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/sharp": "^0.32.0",
+    "tsup": "^8.5.1",
+    "typescript": "^5",
+    "vitest": "^4.1.2"
+  },
+  "dependencies": {
+    "@commander-js/extra-typings": "^14.0.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "commander": "^14.0.3",
+    "sharp": "^0.34.5",
+    "zod": "^4.3.6"
+  }
+}
