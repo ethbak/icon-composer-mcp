@@ -178,8 +178,6 @@ icon-composer --help
 
 ## How It Works
 
-<!-- TODO: Add a diagram or before/after showing the workflow -->
-
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/how-it-works-dark.png">
@@ -772,8 +770,6 @@ icon-composer glass ./out/AppIcon.icon --specular --shadow-kind layer-color --bl
 icon-composer preview ./out/AppIcon.icon preview.png
 ```
 
-<!-- TODO: Add screenshot of the output icon here -->
-
 ### Export for App Store
 
 ```bash
@@ -800,8 +796,6 @@ icon-composer glass ./out/AppIcon.icon --group-index 1 --specular --shadow-kind 
 # Render Liquid Glass
 icon-composer render ./out/AppIcon.icon glass-preview.png
 ```
-
-<!-- TODO: Add screenshot showing multi-layer result -->
 
 ## Limitations
 
