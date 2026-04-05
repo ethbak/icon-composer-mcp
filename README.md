@@ -24,11 +24,7 @@
 ## Demo
 
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/demo-dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="assets/demo-light.png">
-    <img alt="demo" src="assets/demo-light.png" width="650">
-  </picture>
+  <img alt="demo" src="assets/demo.gif" width="650">
 </p>
 
 ## Key Features
