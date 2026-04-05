@@ -100,7 +100,7 @@ export async function createFixtureBundle(
       addLayer(group, {
         imageName,
         name: `layer-${gi}-${li}`,
-        scale: options.glyphScale ?? 1.0,
+        scale: options.glyphScale ?? 1.75,
         glass: true,
       });
       assets.set(imageName, TEST_PNG);

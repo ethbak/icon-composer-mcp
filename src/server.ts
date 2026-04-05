@@ -53,7 +53,7 @@ server.tool(
     bundle_name: z.string().default('AppIcon').describe('Name for the .icon bundle (without extension)'),
     bg_color: z.string().describe('Background color as hex (e.g. #0A66C2)'),
     dark_bg_color: z.optional(z.string()).describe('Dark mode background color as hex'),
-    glyph_scale: z.number().min(0.1).max(2.0).default(1.0).describe('Scale of foreground glyph (0.1-2.0, default 1.0 fills ~65% of icon area in Icon Composer)'),
+    glyph_scale: z.number().min(0.1).max(3.0).default(1.75).describe('Scale of foreground glyph (0.1-2.0, default 1.0 fills ~65% of icon area in Icon Composer)'),
     specular: z.boolean().default(true).describe('Enable specular highlights (Liquid Glass)'),
     shadow_kind: z.enum(['neutral', 'layer-color', 'none']).default('layer-color').describe('Shadow type'),
     shadow_opacity: z.number().min(0).max(1).default(0.5).describe('Shadow opacity'),

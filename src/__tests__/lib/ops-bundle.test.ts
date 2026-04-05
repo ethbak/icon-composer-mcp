@@ -41,7 +41,7 @@ function defaultCreateParams(overrides: Partial<CreateIconParams> = {}): CreateI
     output_dir: tmpDir,
     bundle_name: 'TestIcon',
     bg_color: '#0A66C2',
-    glyph_scale: 1.0,
+    glyph_scale: 1.75,
     specular: true,
     shadow_kind: 'layer-color',
     shadow_opacity: 0.5,
