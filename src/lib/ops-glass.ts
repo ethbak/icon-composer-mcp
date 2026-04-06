@@ -3,7 +3,21 @@ import * as path from 'node:path';
 import { solidFill, hexToIconColor } from './manifest';
 import { readIconBundle, saveManifest } from './bundle';
 import { toBlendMode } from '../types';
-import type { McpResult } from '../types';
+import type { McpResult, Specialization } from '../types';
+
+// ---------------------------------------------------------------------------
+// Helpers — specialization upsert
+// ---------------------------------------------------------------------------
+
+function upsertSpecialization<T>(
+  array: Specialization<T>[] | undefined,
+  appearance: 'dark' | 'tinted',
+  value: T,
+): Specialization<T>[] {
+  const filtered = (array ?? []).filter((s) => s.appearance !== appearance);
+  filtered.push({ appearance, value });
+  return filtered;
+}
 
 // ---------------------------------------------------------------------------
 // Parameter interfaces
@@ -25,14 +39,24 @@ export interface SetGlassParams {
 
 export interface SetAppearancesParams {
   bundle_path: string;
-  target: 'fill' | 'group';
+  target: 'fill' | 'group' | 'layer';
   group_index: number;
   appearance: 'dark' | 'tinted';
+  layer_index?: number;
   bg_color?: string;
   specular?: boolean;
   shadow_kind?: 'neutral' | 'layer-color' | 'none';
   shadow_opacity?: number;
   opacity?: number;
+  blur_material?: number | null;
+  translucency_enabled?: boolean;
+  translucency_value?: number;
+  hidden?: boolean;
+  position_scale?: number;
+  position_offset_x?: number;
+  position_offset_y?: number;
+  blend_mode?: string;
+  fill_color?: string;
 }
 
 export interface SetFillParams {
@@ -146,28 +170,108 @@ export async function setAppearances(params: SetAppearancesParams): Promise<McpR
       }
 
       if (params.specular !== undefined) {
-        if (!group['specular-specializations']) group['specular-specializations'] = [];
-        group['specular-specializations'] = group['specular-specializations'].filter(
-          (s) => s.appearance !== params.appearance,
+        group['specular-specializations'] = upsertSpecialization(
+          group['specular-specializations'], params.appearance, params.specular,
         );
-        group['specular-specializations'].push({
-          appearance: params.appearance,
-          value: params.specular,
-        });
       }
 
       if (params.shadow_kind !== undefined || params.shadow_opacity !== undefined) {
-        if (!group['shadow-specializations']) group['shadow-specializations'] = [];
-        group['shadow-specializations'] = group['shadow-specializations'].filter(
-          (s) => s.appearance !== params.appearance,
-        );
-        group['shadow-specializations'].push({
-          appearance: params.appearance,
-          value: {
+        group['shadow-specializations'] = upsertSpecialization(
+          group['shadow-specializations'], params.appearance, {
             kind: params.shadow_kind ?? 'layer-color',
             opacity: params.shadow_opacity ?? 0.5,
           },
-        });
+        );
+      }
+
+      if (params.blur_material !== undefined) {
+        group['blur-material-specializations'] = upsertSpecialization(
+          group['blur-material-specializations'], params.appearance, params.blur_material,
+        );
+      }
+
+      if (params.opacity !== undefined) {
+        group['opacity-specializations'] = upsertSpecialization(
+          group['opacity-specializations'], params.appearance, params.opacity,
+        );
+      }
+
+      if (params.translucency_enabled !== undefined || params.translucency_value !== undefined) {
+        group['translucency-specializations'] = upsertSpecialization(
+          group['translucency-specializations'], params.appearance, {
+            enabled: params.translucency_enabled ?? group.translucency?.enabled ?? false,
+            value: params.translucency_value ?? group.translucency?.value ?? 0.4,
+          },
+        );
+      }
+
+      if (params.hidden !== undefined) {
+        group['hidden-specializations'] = upsertSpecialization(
+          group['hidden-specializations'], params.appearance, params.hidden,
+        );
+      }
+
+      if (params.position_scale !== undefined || params.position_offset_x !== undefined || params.position_offset_y !== undefined) {
+        const currentPos = group.position ?? { scale: 1.0, 'translation-in-points': [0, 0] as [number, number] };
+        group['position-specializations'] = upsertSpecialization(
+          group['position-specializations'], params.appearance, {
+            scale: params.position_scale ?? currentPos.scale,
+            'translation-in-points': [
+              params.position_offset_x ?? currentPos['translation-in-points'][0],
+              params.position_offset_y ?? currentPos['translation-in-points'][1],
+            ],
+          },
+        );
+      }
+    }
+
+    if (params.target === 'layer') {
+      const group = manifest.groups[Math.min(params.group_index, manifest.groups.length - 1)];
+      if (!group) {
+        return err('Error: Group not found');
+      }
+
+      const layerIdx = params.layer_index ?? 0;
+      if (layerIdx >= group.layers.length) {
+        return err(`Error: Layer index ${layerIdx} out of range (group has ${group.layers.length} layers)`);
+      }
+      const layer = group.layers[layerIdx];
+
+      if (params.opacity !== undefined) {
+        layer['opacity-specializations'] = upsertSpecialization(
+          layer['opacity-specializations'], params.appearance, params.opacity,
+        );
+      }
+
+      if (params.blend_mode !== undefined) {
+        layer['blend-mode-specializations'] = upsertSpecialization(
+          layer['blend-mode-specializations'], params.appearance, toBlendMode(params.blend_mode),
+        );
+      }
+
+      if (params.fill_color !== undefined) {
+        layer['fill-specializations'] = upsertSpecialization(
+          layer['fill-specializations'], params.appearance, solidFill(params.fill_color),
+        );
+      }
+
+      if (params.hidden !== undefined) {
+        layer['hidden-specializations'] = upsertSpecialization(
+          layer['hidden-specializations'], params.appearance, params.hidden,
+        );
+      }
+
+      if (params.position_scale !== undefined || params.position_offset_x !== undefined || params.position_offset_y !== undefined) {
+        const currentPos = layer.position ?? { scale: 1.0, 'translation-in-points': [0, 0] as [number, number] };
+        layer['position-specializations'] = upsertSpecialization(
+          layer['position-specializations'], params.appearance, {
+            scale: params.position_scale ?? currentPos.scale,
+            'translation-in-points': [
+              params.position_offset_x ?? currentPos['translation-in-points'][0],
+              params.position_offset_y ?? currentPos['translation-in-points'][1],
+            ],
+          },
+        );
       }
     }
 

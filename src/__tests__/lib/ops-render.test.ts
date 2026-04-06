@@ -386,6 +386,132 @@ describe('exportMarketing', () => {
   });
 });
 
+// --- inline image return ---
+
+describe('exportPreview inline image', () => {
+  let tmpDir: string;
+
+  beforeEach(async () => {
+    tmpDir = await makeTempDir('ops-render-inline-');
+  });
+
+  afterEach(async () => {
+    await cleanTempDir(tmpDir);
+  });
+
+  test('flat preview returns image content block by default', async () => {
+    const bundlePath = await createFixtureBundle(tmpDir, 'inline-default');
+    const outputPath = path.join(tmpDir, 'preview-inline.png');
+
+    const result = await exportPreview({
+      bundle_path: bundlePath,
+      output_path: outputPath,
+      size: 256,
+      flat: true,
+      zoom: 1.0,
+    });
+
+    expect(isErrorResult(result)).toBe(false);
+    expect(result.content.length).toBeGreaterThanOrEqual(2);
+    const imageBlock = result.content[1];
+    expect(imageBlock.type).toBe('image');
+    if (imageBlock.type === 'image') {
+      expect(imageBlock.mimeType).toBe('image/png');
+      expect(imageBlock.data.length).toBeGreaterThan(0);
+    }
+  });
+
+  test('return_image=false suppresses image block', async () => {
+    const bundlePath = await createFixtureBundle(tmpDir, 'inline-suppressed');
+    const outputPath = path.join(tmpDir, 'preview-no-inline.png');
+
+    const result = await exportPreview({
+      bundle_path: bundlePath,
+      output_path: outputPath,
+      size: 256,
+      flat: true,
+      zoom: 1.0,
+      return_image: false,
+    });
+
+    expect(isErrorResult(result)).toBe(false);
+    expect(result.content.length).toBe(1);
+    expect(result.content[0].type).toBe('text');
+  });
+
+  test('base64 data decodes to valid PNG', async () => {
+    const bundlePath = await createFixtureBundle(tmpDir, 'inline-decode');
+    const outputPath = path.join(tmpDir, 'preview-decode.png');
+
+    const result = await exportPreview({
+      bundle_path: bundlePath,
+      output_path: outputPath,
+      size: 128,
+      flat: true,
+      zoom: 1.0,
+    });
+
+    expect(isErrorResult(result)).toBe(false);
+    expect(result.content.length).toBeGreaterThanOrEqual(2);
+    const imageBlock = result.content[1];
+    expect(imageBlock.type).toBe('image');
+    if (imageBlock.type === 'image') {
+      const decoded = Buffer.from(imageBlock.data, 'base64');
+      const meta = await sharp(decoded).metadata();
+      expect(meta.format).toBe('png');
+      expect(meta.width).toBe(128);
+      expect(meta.height).toBe(128);
+    }
+  });
+});
+
+describe('exportMarketing inline image', () => {
+  let tmpDir: string;
+
+  beforeEach(async () => {
+    tmpDir = await makeTempDir('ops-render-mkt-inline-');
+  });
+
+  afterEach(async () => {
+    await cleanTempDir(tmpDir);
+  });
+
+  test('returns image content block by default', async () => {
+    const bundlePath = await createFixtureBundle(tmpDir, 'mkt-inline');
+    const outputPath = path.join(tmpDir, 'marketing-inline.png');
+
+    const result = await exportMarketing({
+      bundle_path: bundlePath,
+      output_path: outputPath,
+      size: 256,
+    });
+
+    expect(isErrorResult(result)).toBe(false);
+    expect(result.content.length).toBeGreaterThanOrEqual(2);
+    const imageBlock = result.content[1];
+    expect(imageBlock.type).toBe('image');
+    if (imageBlock.type === 'image') {
+      expect(imageBlock.mimeType).toBe('image/png');
+    }
+  });
+
+  test('return_image=false suppresses image block', async () => {
+    const bundlePath = await createFixtureBundle(tmpDir, 'mkt-no-inline');
+    const outputPath = path.join(tmpDir, 'marketing-no-inline.png');
+
+    const result = await exportMarketing({
+      bundle_path: bundlePath,
+      output_path: outputPath,
+      size: 256,
+      return_image: false,
+    });
+
+    expect(isErrorResult(result)).toBe(false);
+    expect(result.content.length).toBe(1);
+    expect(result.content[0].type).toBe('text');
+  });
+});
+
 // --- Error cases ---
 
 describe('error cases', () => {

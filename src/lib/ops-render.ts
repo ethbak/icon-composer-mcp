@@ -5,7 +5,9 @@ import { renderPreview, compositeOnBackground, type CanvasBackground, type Apple
 import { resolveFill } from './manifest';
 import { ictoolAvailable, renderWithIctool, CLEAR_RENDITIONS } from './ictool';
 import { stripAlpha } from './image-utils';
-import type { IconManifest, McpResult } from '../types';
+import type { IconManifest, McpResult, McpContentBlock } from '../types';
+
+const MAX_INLINE_IMAGE_BYTES = 4 * 1024 * 1024; // 4 MB
 
 // ictool and Icon Composer use the manifest scale values directly.
 // scale=1.0 renders at ~65% of icon area — this is Apple's native behavior.
@@ -22,6 +24,7 @@ export interface ExportPreviewParams {
   canvas_bg_color?: string;
   canvas_bg_image?: string;
   zoom: number;
+  return_image?: boolean;
 }
 
 export interface RenderLiquidGlassParams {
@@ -40,6 +43,7 @@ export interface RenderLiquidGlassParams {
   canvas_bg_color?: string;
   canvas_bg_image?: string;
   zoom: number;
+  return_image?: boolean;
 }
 
 export function resolveCanvasBackgroundParam(params: {
@@ -180,9 +184,13 @@ export async function exportPreview(params: ExportPreviewParams): Promise<McpRes
 
     await fs.writeFile(params.output_path, buffer);
 
-    return {
-      content: [{ type: 'text', text: `Exported preview to ${params.output_path} (${params.size}x${params.size}, ${renderer}, zoom: ${params.zoom}x, bg: ${params.canvas_bg_image ? 'image' : params.canvas_bg_color ?? params.canvas_bg ?? 'none'})` }],
-    };
+    const content: McpContentBlock[] = [
+      { type: 'text', text: `Exported preview to ${params.output_path} (${params.size}x${params.size}, ${renderer}, zoom: ${params.zoom}x, bg: ${params.canvas_bg_image ? 'image' : params.canvas_bg_color ?? params.canvas_bg ?? 'none'})` },
+    ];
+    if (params.return_image !== false && buffer.length <= MAX_INLINE_IMAGE_BYTES) {
+      content.push({ type: 'image', data: buffer.toString('base64'), mimeType: 'image/png' });
+    }
+    return { content };
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Unknown error';
     return { content: [{ type: 'text', text: `Error: ${msg}` }], isError: true };
@@ -231,9 +239,16 @@ export async function renderLiquidGlass(params: RenderLiquidGlassParams): Promis
 
     const stat = await fs.stat(params.output_path);
 
-    return {
-      content: [{ type: 'text', text: `Rendered Liquid Glass preview to ${params.output_path} (${params.width}x${params.height}@${params.scale}x, ${params.rendition}, zoom: ${params.zoom}x, ${(stat.size / 1024).toFixed(1)} KB)` }],
-    };
+    const content: McpContentBlock[] = [
+      { type: 'text', text: `Rendered Liquid Glass preview to ${params.output_path} (${params.width}x${params.height}@${params.scale}x, ${params.rendition}, zoom: ${params.zoom}x, ${(stat.size / 1024).toFixed(1)} KB)` },
+    ];
+    if (params.return_image !== false) {
+      const fileBuffer = await fs.readFile(params.output_path);
+      if (fileBuffer.length <= MAX_INLINE_IMAGE_BYTES) {
+        content.push({ type: 'image', data: fileBuffer.toString('base64'), mimeType: 'image/png' });
+      }
+    }
+    return { content };
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Unknown error';
     return { content: [{ type: 'text', text: `Error: ${msg}` }], isError: true };
@@ -244,6 +259,7 @@ export interface ExportMarketingParams {
   bundle_path: string;
   output_path: string;
   size?: number;
+  return_image?: boolean;
 }
 
 /**
@@ -276,9 +292,13 @@ export async function exportMarketing(params: ExportMarketingParams): Promise<Mc
     await fs.writeFile(params.output_path, buffer);
 
     const stat = await fs.stat(params.output_path);
-    return {
-      content: [{ type: 'text', text: `Exported marketing icon to ${params.output_path} (${size}x${size}, no alpha, ${(stat.size / 1024).toFixed(1)} KB)` }],
-    };
+    const content: McpContentBlock[] = [
+      { type: 'text', text: `Exported marketing icon to ${params.output_path} (${size}x${size}, no alpha, ${(stat.size / 1024).toFixed(1)} KB)` },
+    ];
+    if (params.return_image !== false && buffer.length <= MAX_INLINE_IMAGE_BYTES) {
+      content.push({ type: 'image', data: buffer.toString('base64'), mimeType: 'image/png' });
+    }
+    return { content };
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Unknown error';
     return { content: [{ type: 'text', text: `Error: ${msg}` }], isError: true };
