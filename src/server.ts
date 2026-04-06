@@ -39,7 +39,8 @@ const server = new McpServer(
 - When the user asks to "create an icon", start with create_icon, show a preview, then iterate on glass effects and appearance.
 - Use read_icon to inspect an existing bundle before modifying it.
 - set_layer_position adjusts glyph scale and offset within the icon.
-- toggle_fx quickly enables/disables all glass effects for comparison.`,
+- toggle_fx quickly enables/disables all glass effects for comparison.
+- **Inline images**: export_preview, render_liquid_glass, and export_marketing return base64 images inline by default. If you are a terminal-based agent (e.g. Claude Code CLI) that cannot display images, pass \`return_image: false\` to avoid wasting tokens on base64 data you cannot render.`,
   },
 );
 
@@ -130,17 +131,31 @@ server.tool(
 // ── Tool: set_appearances ──
 server.tool(
   'set_appearances',
-  'Set dark mode or tinted mode appearance overrides for the icon background fill or layer group properties.',
+  'Set dark mode or tinted mode appearance overrides for the icon background fill, layer group, or individual layer properties.',
   {
     bundle_path: z.string().describe('Path to .icon bundle'),
-    target: z.enum(['fill', 'group']).describe('What to set appearance on'),
-    group_index: z.number().default(0).describe('Group index (only for target=group)'),
+    target: z.enum(['fill', 'group', 'layer']).describe('What to set appearance on'),
+    group_index: z.number().default(0).describe('Group index (for target=group or target=layer)'),
     appearance: z.enum(['dark', 'tinted']).describe('Appearance mode'),
-    bg_color: z.optional(z.string()).describe('Background color hex for this appearance'),
-    specular: z.optional(z.boolean()).describe('Specular for this appearance'),
-    shadow_kind: z.optional(z.enum(['neutral', 'layer-color', 'none'])).describe('Shadow kind'),
-    shadow_opacity: z.optional(z.number().min(0).max(1)).describe('Shadow opacity'),
-    opacity: z.optional(z.number().min(0).max(1)).describe('Group opacity'),
+    layer_index: z.optional(z.number()).describe('Layer index within the group (required when target=layer)'),
+    bg_color: z.optional(z.string()).describe('Background color hex for this appearance (target=fill)'),
+    specular: z.optional(z.boolean()).describe('Specular for this appearance (target=group)'),
+    shadow_kind: z.optional(z.enum(['neutral', 'layer-color', 'none'])).describe('Shadow kind (target=group)'),
+    shadow_opacity: z.optional(z.number().min(0).max(1)).describe('Shadow opacity (target=group)'),
+    opacity: z.optional(z.number().min(0).max(1)).describe('Opacity for this appearance (target=group or target=layer)'),
+    blur_material: z.optional(z.number().min(0).max(1).nullable()).describe('Blur material for this appearance (target=group)'),
+    translucency_enabled: z.optional(z.boolean()).describe('Enable translucency for this appearance (target=group)'),
+    translucency_value: z.optional(z.number().min(0).max(1)).describe('Translucency amount for this appearance (target=group)'),
+    hidden: z.optional(z.boolean()).describe('Hidden state for this appearance (target=group or target=layer)'),
+    blend_mode: z.optional(z.enum([
+      'normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten',
+      'color-dodge', 'color-burn', 'soft-light', 'hard-light',
+      'difference', 'exclusion', 'plus-darker', 'plus-lighter',
+    ])).describe('Blend mode for this appearance (target=layer)'),
+    fill_color: z.optional(z.string()).describe('Fill color hex for this appearance (target=layer)'),
+    position_scale: z.optional(z.number().min(0.05).max(3.0)).describe('Position scale for this appearance'),
+    position_offset_x: z.optional(z.number()).describe('Position X offset for this appearance'),
+    position_offset_y: z.optional(z.number()).describe('Position Y offset for this appearance'),
   },
   async (params) => setAppearances(params),
 );
@@ -160,6 +175,7 @@ server.tool(
     canvas_bg_color: z.optional(z.string()).describe('Custom hex color for canvas background'),
     canvas_bg_image: z.optional(z.string()).describe('Path to custom background image'),
     zoom: z.number().min(0.1).max(3.0).default(1.0).describe('Zoom level — icon size relative to canvas (1.0 = full canvas, 0.5 = half size)'),
+    return_image: z.boolean().default(true).describe('Return the rendered image inline as base64 (default true)'),
   },
   async (params) => exportPreview(params),
 );
@@ -235,6 +251,7 @@ server.tool(
     canvas_bg_color: z.optional(z.string()).describe('Custom hex color for canvas background'),
     canvas_bg_image: z.optional(z.string()).describe('Path to custom background image'),
     zoom: z.number().min(0.1).max(3.0).default(1.0).describe('Zoom level — icon size relative to canvas (1.0 = full canvas, 0.5 = half size)'),
+    return_image: z.boolean().default(true).describe('Return the rendered image inline as base64 (default true)'),
   },
   async (params) => renderLiquidGlass(params),
 );
@@ -247,6 +264,7 @@ server.tool(
     bundle_path: z.string().describe('Path to .icon bundle'),
     output_path: z.string().describe('Output path for the PNG file'),
     size: z.number().min(16).max(2048).default(1024).describe('Output size in pixels (default 1024)'),
+    return_image: z.boolean().default(true).describe('Return the rendered image inline as base64 (default true)'),
   },
   async (params) => exportMarketing(params),
 );

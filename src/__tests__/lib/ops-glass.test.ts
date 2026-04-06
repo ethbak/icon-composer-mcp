@@ -193,6 +193,248 @@ describe('setAppearances', () => {
     expect(tintedSpec).toBeDefined();
     expect(tintedSpec!.value).toEqual({ kind: 'neutral', opacity: 0.3 });
   });
+
+  test('group target with blur-material specialization for dark', async () => {
+    const bundle = await createFixtureBundle(tmpDir, 'grp-blur');
+    const result = await setAppearances({
+      bundle_path: bundle,
+      target: 'group',
+      group_index: 0,
+      appearance: 'dark',
+      blur_material: 0.7,
+    });
+    expect(isErrorResult(result)).toBe(false);
+    const m = await readManifest(bundle);
+    const specs = m.groups[0]['blur-material-specializations'];
+    expect(specs).toBeDefined();
+    expect(specs!.find((s) => s.appearance === 'dark')?.value).toBe(0.7);
+  });
+
+  test('group target with opacity specialization (bug fix)', async () => {
+    const bundle = await createFixtureBundle(tmpDir, 'grp-opacity');
+    const result = await setAppearances({
+      bundle_path: bundle,
+      target: 'group',
+      group_index: 0,
+      appearance: 'dark',
+      opacity: 0.6,
+    });
+    expect(isErrorResult(result)).toBe(false);
+    const m = await readManifest(bundle);
+    const specs = m.groups[0]['opacity-specializations'];
+    expect(specs).toBeDefined();
+    expect(specs!.find((s) => s.appearance === 'dark')?.value).toBe(0.6);
+  });
+
+  test('group target with translucency specialization', async () => {
+    const bundle = await createFixtureBundle(tmpDir, 'grp-trans');
+    const result = await setAppearances({
+      bundle_path: bundle,
+      target: 'group',
+      group_index: 0,
+      appearance: 'tinted',
+      translucency_enabled: true,
+      translucency_value: 0.8,
+    });
+    expect(isErrorResult(result)).toBe(false);
+    const m = await readManifest(bundle);
+    const specs = m.groups[0]['translucency-specializations'];
+    expect(specs).toBeDefined();
+    const tintedSpec = specs!.find((s) => s.appearance === 'tinted');
+    expect(tintedSpec!.value).toEqual({ enabled: true, value: 0.8 });
+  });
+
+  test('group target with hidden specialization', async () => {
+    const bundle = await createFixtureBundle(tmpDir, 'grp-hidden');
+    const result = await setAppearances({
+      bundle_path: bundle,
+      target: 'group',
+      group_index: 0,
+      appearance: 'dark',
+      hidden: true,
+    });
+    expect(isErrorResult(result)).toBe(false);
+    const m = await readManifest(bundle);
+    const specs = m.groups[0]['hidden-specializations'];
+    expect(specs).toBeDefined();
+    expect(specs!.find((s) => s.appearance === 'dark')?.value).toBe(true);
+  });
+
+  test('group target with position specialization', async () => {
+    const bundle = await createFixtureBundle(tmpDir, 'grp-pos');
+    const result = await setAppearances({
+      bundle_path: bundle,
+      target: 'group',
+      group_index: 0,
+      appearance: 'dark',
+      position_scale: 0.8,
+      position_offset_x: 10,
+      position_offset_y: -5,
+    });
+    expect(isErrorResult(result)).toBe(false);
+    const m = await readManifest(bundle);
+    const specs = m.groups[0]['position-specializations'];
+    expect(specs).toBeDefined();
+    const darkSpec = specs!.find((s) => s.appearance === 'dark');
+    expect(darkSpec!.value).toEqual({
+      scale: 0.8,
+      'translation-in-points': [10, -5],
+    });
+  });
+
+  test('layer target with opacity specialization', async () => {
+    const bundle = await createFixtureBundle(tmpDir, 'layer-opacity');
+    const result = await setAppearances({
+      bundle_path: bundle,
+      target: 'layer',
+      group_index: 0,
+      layer_index: 0,
+      appearance: 'dark',
+      opacity: 0.3,
+    });
+    expect(isErrorResult(result)).toBe(false);
+    const m = await readManifest(bundle);
+    const specs = m.groups[0].layers[0]['opacity-specializations'];
+    expect(specs).toBeDefined();
+    expect(specs!.find((s) => s.appearance === 'dark')?.value).toBe(0.3);
+  });
+
+  test('layer target with blend-mode specialization', async () => {
+    const bundle = await createFixtureBundle(tmpDir, 'layer-blend');
+    const result = await setAppearances({
+      bundle_path: bundle,
+      target: 'layer',
+      group_index: 0,
+      layer_index: 0,
+      appearance: 'tinted',
+      blend_mode: 'multiply',
+    });
+    expect(isErrorResult(result)).toBe(false);
+    const m = await readManifest(bundle);
+    const specs = m.groups[0].layers[0]['blend-mode-specializations'];
+    expect(specs).toBeDefined();
+    expect(specs!.find((s) => s.appearance === 'tinted')?.value).toBe('multiply');
+  });
+
+  test('layer target with fill specialization', async () => {
+    const bundle = await createFixtureBundle(tmpDir, 'layer-fill');
+    const result = await setAppearances({
+      bundle_path: bundle,
+      target: 'layer',
+      group_index: 0,
+      layer_index: 0,
+      appearance: 'dark',
+      fill_color: '#FF0000',
+    });
+    expect(isErrorResult(result)).toBe(false);
+    const m = await readManifest(bundle);
+    const specs = m.groups[0].layers[0]['fill-specializations'];
+    expect(specs).toBeDefined();
+    const darkSpec = specs!.find((s) => s.appearance === 'dark');
+    expect(darkSpec!.value).toHaveProperty('solid');
+  });
+
+  test('layer target with hidden specialization', async () => {
+    const bundle = await createFixtureBundle(tmpDir, 'layer-hidden');
+    const result = await setAppearances({
+      bundle_path: bundle,
+      target: 'layer',
+      group_index: 0,
+      layer_index: 0,
+      appearance: 'tinted',
+      hidden: true,
+    });
+    expect(isErrorResult(result)).toBe(false);
+    const m = await readManifest(bundle);
+    const specs = m.groups[0].layers[0]['hidden-specializations'];
+    expect(specs).toBeDefined();
+    expect(specs!.find((s) => s.appearance === 'tinted')?.value).toBe(true);
+  });
+
+  test('layer target with position specialization', async () => {
+    const bundle = await createFixtureBundle(tmpDir, 'layer-pos');
+    const result = await setAppearances({
+      bundle_path: bundle,
+      target: 'layer',
+      group_index: 0,
+      layer_index: 0,
+      appearance: 'dark',
+      position_scale: 1.5,
+      position_offset_x: -10,
+      position_offset_y: 20,
+    });
+    expect(isErrorResult(result)).toBe(false);
+    const m = await readManifest(bundle);
+    const specs = m.groups[0].layers[0]['position-specializations'];
+    expect(specs).toBeDefined();
+    const darkSpec = specs!.find((s) => s.appearance === 'dark');
+    expect(darkSpec!.value).toEqual({
+      scale: 1.5,
+      'translation-in-points': [-10, 20],
+    });
+  });
+
+  test('layer target with invalid layer index returns error', async () => {
+    const bundle = await createFixtureBundle(tmpDir, 'layer-oor', { layerCount: 1 });
+    const result = await setAppearances({
+      bundle_path: bundle,
+      target: 'layer',
+      group_index: 0,
+      layer_index: 5,
+      appearance: 'dark',
+      opacity: 0.5,
+    });
+    expect(isErrorResult(result)).toBe(true);
+    expect(responseText(result)).toContain('out of range');
+  });
+
+  test('overwrite existing specialization', async () => {
+    const bundle = await createFixtureBundle(tmpDir, 'overwrite');
+    // Set dark opacity to 0.3
+    await setAppearances({
+      bundle_path: bundle,
+      target: 'group',
+      group_index: 0,
+      appearance: 'dark',
+      opacity: 0.3,
+    });
+    // Overwrite dark opacity to 0.9
+    await setAppearances({
+      bundle_path: bundle,
+      target: 'group',
+      group_index: 0,
+      appearance: 'dark',
+      opacity: 0.9,
+    });
+    const m = await readManifest(bundle);
+    const specs = m.groups[0]['opacity-specializations']!;
+    const darkSpecs = specs.filter((s) => s.appearance === 'dark');
+    expect(darkSpecs).toHaveLength(1);
+    expect(darkSpecs[0].value).toBe(0.9);
+  });
+
+  test('multiple appearances coexist', async () => {
+    const bundle = await createFixtureBundle(tmpDir, 'multi-app');
+    await setAppearances({
+      bundle_path: bundle,
+      target: 'group',
+      group_index: 0,
+      appearance: 'dark',
+      opacity: 0.3,
+    });
+    await setAppearances({
+      bundle_path: bundle,
+      target: 'group',
+      group_index: 0,
+      appearance: 'tinted',
+      opacity: 0.7,
+    });
+    const m = await readManifest(bundle);
+    const specs = m.groups[0]['opacity-specializations']!;
+    expect(specs).toHaveLength(2);
+    expect(specs.find((s) => s.appearance === 'dark')?.value).toBe(0.3);
+    expect(specs.find((s) => s.appearance === 'tinted')?.value).toBe(0.7);
+  });
 });
 
 // ---------------------------------------------------------------------------

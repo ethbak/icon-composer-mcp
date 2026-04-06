@@ -119,7 +119,11 @@ export interface IconManifest {
 
 // ── Standard MCP result type ──
 
+export type McpContentBlock =
+  | { type: 'text'; text: string }
+  | { type: 'image'; data: string; mimeType: string };
+
 export interface McpResult {
-  content: [{ type: 'text'; text: string }];
+  content: McpContentBlock[];
   isError?: true;
 }

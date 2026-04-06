@@ -179,6 +179,31 @@ test('export_preview flat', async () => {
   expect(stat.size).toBeGreaterThan(0);
 });
 
+// ── export_preview inline image ──
+
+test('export_preview returns inline image by default', async () => {
+  const out = path.join(tmpDir, 'preview-inline.png');
+  const r = await client.callTool({ name: 'export_preview', arguments: {
+    bundle_path: path.join(tmpDir, 'McpTest.icon'), output_path: out, size: 256, flat: true,
+  } });
+  expect(r.isError).toBeFalsy();
+  expect(r.content.length).toBeGreaterThanOrEqual(2);
+  const imageBlock = r.content[1] as any;
+  expect(imageBlock.type).toBe('image');
+  expect(imageBlock.mimeType).toBe('image/png');
+  expect(imageBlock.data.length).toBeGreaterThan(0);
+});
+
+test('export_preview return_image=false omits image', async () => {
+  const out = path.join(tmpDir, 'preview-no-inline.png');
+  const r = await client.callTool({ name: 'export_preview', arguments: {
+    bundle_path: path.join(tmpDir, 'McpTest.icon'), output_path: out, size: 256, flat: true, return_image: false,
+  } });
+  expect(r.isError).toBeFalsy();
+  expect(r.content.length).toBe(1);
+  expect(r.content[0].type).toBe('text');
+});
+
 // ── export_marketing ──
 
 test('export_marketing', async () => {
@@ -190,6 +215,18 @@ test('export_marketing', async () => {
   expect(text(r)).toContain('no alpha');
 });
 
+test('export_marketing returns inline image', async () => {
+  const out = path.join(tmpDir, 'marketing-inline.png');
+  const r = await client.callTool({ name: 'export_marketing', arguments: {
+    bundle_path: path.join(tmpDir, 'McpTest.icon'), output_path: out, size: 256,
+  } });
+  expect(r.isError).toBeFalsy();
+  expect(r.content.length).toBeGreaterThanOrEqual(2);
+  const imageBlock = r.content[1] as any;
+  expect(imageBlock.type).toBe('image');
+  expect(imageBlock.mimeType).toBe('image/png');
+});
+
 // ── remove_layer ──
 
 test('remove_layer', async () => {
@@ -199,6 +236,37 @@ test('remove_layer', async () => {
   } });
   expect(r.isError).toBeFalsy();
   expect(text(r)).toContain('Removed layer');
+});
+
+// ── set_appearances: new specializations ──
+
+describe('set_appearances specializations', () => {
+  test('group blur-material for dark', async () => {
+    const r = await client.callTool({ name: 'set_appearances', arguments: {
+      bundle_path: path.join(tmpDir, 'McpTest.icon'), target: 'group',
+      group_index: 0, appearance: 'dark', blur_material: 0.6,
+    } });
+    expect(r.isError).toBeFalsy();
+    expect(text(r)).toContain('dark');
+  });
+
+  test('layer opacity for dark', async () => {
+    const r = await client.callTool({ name: 'set_appearances', arguments: {
+      bundle_path: path.join(tmpDir, 'McpTest.icon'), target: 'layer',
+      group_index: 0, layer_index: 0, appearance: 'dark', opacity: 0.5,
+    } });
+    expect(r.isError).toBeFalsy();
+    expect(text(r)).toContain('dark');
+  });
+
+  test('layer blend-mode for tinted', async () => {
+    const r = await client.callTool({ name: 'set_appearances', arguments: {
+      bundle_path: path.join(tmpDir, 'McpTest.icon'), target: 'layer',
+      group_index: 0, layer_index: 0, appearance: 'tinted', blend_mode: 'screen',
+    } });
+    expect(r.isError).toBeFalsy();
+    expect(text(r)).toContain('tinted');
+  });
 });
 
 // ── render_liquid_glass ──

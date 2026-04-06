@@ -12,8 +12,12 @@ const toFloat = (v: string) => parseFloat(v);
 
 // ── Output handler ──
 
+type McpContentBlock =
+  | { type: 'text'; text: string }
+  | { type: 'image'; data: string; mimeType: string };
+
 interface McpResult {
-  content: [{ type: string; text: string }];
+  content: McpContentBlock[];
   isError?: true;
 }
 
@@ -183,15 +187,27 @@ program
   .command('appearance')
   .description('Set appearance overrides')
   .argument('<bundle_path>', 'Path to the .icon bundle')
-  .requiredOption('--target <type>', 'Target type (fill or group)')
+  .requiredOption('--target <type>', 'Target type (fill, group, or layer)')
   .requiredOption('--appearance <mode>', 'Appearance mode (dark or tinted)')
   .option('--group-index <n>', 'Group index', toInt, 0)
+  .option('--layer-index <n>', 'Layer index (required when target=layer)', toInt)
   .option('--bg-color <hex>', 'Background color')
   .option('--specular', 'Enable specular highlight')
   .option('--no-specular', 'Disable specular highlight')
   .option('--shadow-kind <kind>', 'Shadow kind (neutral, layer-color, none)')
   .option('--shadow-opacity <n>', 'Shadow opacity', toFloat)
   .option('--opacity <n>', 'Opacity', toFloat)
+  .option('--blur-material <n>', 'Blur material value', toFloat)
+  .option('--translucency-enabled', 'Enable translucency')
+  .option('--no-translucency-enabled', 'Disable translucency')
+  .option('--translucency-value <n>', 'Translucency value', toFloat)
+  .option('--hidden', 'Set hidden to true')
+  .option('--no-hidden', 'Set hidden to false')
+  .option('--blend-mode <mode>', 'Blend mode (for layer target)')
+  .option('--fill-color <hex>', 'Fill color hex (for layer target)')
+  .option('--position-scale <n>', 'Position scale', toFloat)
+  .option('--position-offset-x <n>', 'Position X offset', toFloat)
+  .option('--position-offset-y <n>', 'Position Y offset', toFloat)
   .action(async (bundle_path, opts) => {
     await run(() =>
       setAppearances({
@@ -199,11 +215,21 @@ program
         target: opts.target,
         appearance: opts.appearance,
         group_index: opts.groupIndex,
+        layer_index: opts.layerIndex,
         bg_color: opts.bgColor,
         specular: opts.specular,
         shadow_kind: opts.shadowKind,
         shadow_opacity: opts.shadowOpacity,
         opacity: opts.opacity,
+        blur_material: opts.blurMaterial,
+        translucency_enabled: opts.translucencyEnabled,
+        translucency_value: opts.translucencyValue,
+        hidden: opts.hidden,
+        blend_mode: opts.blendMode,
+        fill_color: opts.fillColor,
+        position_scale: opts.positionScale,
+        position_offset_x: opts.positionOffsetX,
+        position_offset_y: opts.positionOffsetY,
       }),
     );
   });
