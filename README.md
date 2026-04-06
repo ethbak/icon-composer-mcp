@@ -327,17 +327,29 @@ icon-composer glass <bundle_path> [options]
 &nbsp;
 
 ```bash
-icon-composer appearance <bundle_path> --target <fill|group> --appearance <dark|tinted> [options]
+icon-composer appearance <bundle_path> --target <fill|group|layer> --appearance <dark|tinted> [options]
 ```
 
 | Option | Description |
 |--------|-------------|
-| `--target <type>` | `fill` (background color) or `group` (glass effects) |
+| `--target <type>` | `fill` (background color), `group` (glass effects), or `layer` (individual layer) |
 | `--appearance <mode>` | `dark` or `tinted` |
+| `--group-index <n>` | Group index (for `target=group` or `target=layer`) |
+| `--layer-index <n>` | Layer index within the group (required when `target=layer`) |
 | `--bg-color <hex>` | Background color for this appearance |
 | `--specular / --no-specular` | Specular for this appearance |
 | `--shadow-kind <kind>` | Shadow type for this appearance |
 | `--shadow-opacity <n>` | Shadow opacity for this appearance |
+| `--opacity <n>` | Opacity for this appearance |
+| `--blur-material <n>` | Blur material value (0–1) for this appearance |
+| `--translucency-enabled / --no-translucency-enabled` | Translucency toggle for this appearance |
+| `--translucency-value <n>` | Translucency amount (0–1) for this appearance |
+| `--hidden / --no-hidden` | Hidden state for this appearance |
+| `--blend-mode <mode>` | Blend mode for this appearance (target=layer) |
+| `--fill-color <hex>` | Fill color for this appearance (target=layer) |
+| `--position-scale <n>` | Position scale for this appearance |
+| `--position-offset-x <n>` | Position X offset for this appearance |
+| `--position-offset-y <n>` | Position Y offset for this appearance |
 
 </details>
 
@@ -605,18 +617,29 @@ Configure Liquid Glass on a group. All effect parameters are optional — only p
 
 ### `set_appearances`
 
-Set dark/tinted overrides for background fill or group effects.
+Set dark/tinted overrides for background fill, group effects, or individual layer properties.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `bundle_path` | string | yes | Path to bundle |
-| `target` | enum | yes | `fill` or `group` |
+| `target` | enum | yes | `fill`, `group`, or `layer` |
 | `appearance` | enum | yes | `dark` or `tinted` |
-| `group_index` | number | no | Group index (for `target=group`) |
-| `bg_color` | string | no | Background color for this appearance |
-| `specular` | boolean | no | Specular for this appearance |
-| `shadow_kind` | enum | no | Shadow type |
-| `shadow_opacity` | number | no | Shadow opacity |
+| `group_index` | number | no | Group index (for `target=group` or `target=layer`) |
+| `layer_index` | number | no | Layer index within the group (required when `target=layer`) |
+| `bg_color` | string | no | Background color for this appearance (target=fill) |
+| `specular` | boolean | no | Specular for this appearance (target=group) |
+| `shadow_kind` | enum | no | Shadow type (target=group) |
+| `shadow_opacity` | number | no | Shadow opacity (target=group) |
+| `opacity` | number | no | Opacity for this appearance (target=group or target=layer) |
+| `blur_material` | number\|null | no | Blur material for this appearance (target=group) |
+| `translucency_enabled` | boolean | no | Enable translucency for this appearance (target=group) |
+| `translucency_value` | number | no | Translucency amount for this appearance (target=group) |
+| `hidden` | boolean | no | Hidden state for this appearance (target=group or target=layer) |
+| `blend_mode` | enum | no | Blend mode for this appearance (target=layer) |
+| `fill_color` | string | no | Fill color hex for this appearance (target=layer) |
+| `position_scale` | number | no | Position scale for this appearance (0.05–3.0) |
+| `position_offset_x` | number | no | Position X offset for this appearance |
+| `position_offset_y` | number | no | Position Y offset for this appearance |
 
 </details>
 
@@ -697,6 +720,7 @@ Render a preview PNG. Uses Liquid Glass by default, falls back to flat.
 | `canvas_bg_color` | string | — | Custom background hex |
 | `canvas_bg_image` | string | — | Background image path |
 | `zoom` | number | `1.0` | Zoom level (0.1–3.0) |
+| `return_image` | boolean | `true` | Return rendered image inline as base64 |
 
 </details>
 
@@ -722,6 +746,7 @@ Pixel-perfect Liquid Glass via Apple's ictool. Requires Icon Composer.app.
 | `tint_color` | number | — | Tint hue (0–1) |
 | `tint_strength` | number | — | Tint strength (0–1) |
 | Canvas options | — | — | Same as `export_preview` |
+| `return_image` | boolean | `true` | Return rendered image inline as base64 |
 
 </details>
 
@@ -739,6 +764,7 @@ Flat marketing PNG for App Store Connect. No glass effects, no alpha channel.
 | `bundle_path` | string | — | Path to bundle |
 | `output_path` | string | — | Output PNG path |
 | `size` | number | `1024` | Output size (16–2048) |
+| `return_image` | boolean | `true` | Return rendered image inline as base64 |
 
 </details>
 
