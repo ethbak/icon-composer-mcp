@@ -17,8 +17,9 @@
   <a href="LICENSE"><img src="https://img.shields.io/npm/l/icon-composer-mcp" alt="license"></a>
   <img src="https://img.shields.io/badge/platform-macOS-blue" alt="platform">
   <img src="https://img.shields.io/badge/MCP-compatible-green" alt="MCP compatible">
-</p>
+  <a href="https://glama.ai/mcp/servers/ethbak/icon-composer-mcp"><img src="https://glama.ai/mcp/servers/ethbak/icon-composer-mcp/badges/score.svg" alt="Glama score"></a>
 
+</p>
 ---
 
 ## Demo
