@@ -20,6 +20,7 @@
   <a href="https://glama.ai/mcp/servers/ethbak/icon-composer-mcp"><img src="https://glama.ai/mcp/servers/ethbak/icon-composer-mcp/badges/score.svg" alt="Glama score"></a>
 
 </p>
+
 ---
 
 ## Demo
