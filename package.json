@@ -1,6 +1,6 @@
 {
   "name": "icon-composer-mcp",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "CLI and MCP server for creating Apple .icon bundles with Liquid Glass effects (iOS 26+)",
   "type": "module",
   "main": "dist/server.js",
