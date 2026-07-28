@@ -24,9 +24,16 @@ let tmpDir: string;
 beforeAll(async () => {
   tmpDir = await mkdtemp(path.join(tmpdir(), 'mcp-int-'));
 
+  // npm exposes package binaries through node_modules/.bin symlinks. Launch
+  // through the same shape so the integration test covers the published bin.
+  const binDir = path.join(tmpDir, 'node_modules', '.bin');
+  await fs.mkdir(binDir, { recursive: true });
+  const serverBin = path.join(binDir, 'icon-composer-mcp');
+  await fs.symlink(path.resolve('dist/server.js'), serverBin);
+
   const transport = new StdioClientTransport({
-    command: 'node',
-    args: [path.resolve('dist/server.js')],
+    command: serverBin,
+    args: [],
   });
   client = new Client({ name: 'test', version: '1.0' });
   await client.connect(transport);
