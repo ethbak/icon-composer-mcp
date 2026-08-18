@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/ethbak-icon-composer-mcp-badge.png)](https://mseep.ai/app/ethbak-icon-composer-mcp)
+
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/banner-dark.png">
