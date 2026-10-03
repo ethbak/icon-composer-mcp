@@ -2,6 +2,8 @@
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { realpathSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 import { createIcon, addLayerToBundle, removeFromBundle, inspectBundle } from './lib/ops-bundle';
 import { setGlassEffects, setAppearances, setFill, setLayerPosition, toggleFx } from './lib/ops-glass';
@@ -349,9 +351,17 @@ server.prompt(
 export { server };
 
 // ── Start server (only when run directly, not imported) ──
-// Check both Bun's import.meta.main and Node's argv pattern
-const isMain = (typeof globalThis.Bun !== 'undefined' && (import.meta as any).main)
-  || process.argv[1]?.replace(/\\/g, '/').match(/\/server\.(js|ts)$/);
+// Resolve npm's node_modules/.bin symlink before comparing the Node entry point.
+const nodeEntryPoint = process.argv[1];
+let isMain = typeof globalThis.Bun !== 'undefined' && (import.meta as any).main;
+if (!isMain && nodeEntryPoint) {
+  try {
+    isMain = realpathSync(nodeEntryPoint) === fileURLToPath(import.meta.url);
+  } catch {
+    // A missing or inaccessible entry point cannot be this module.
+  }
+}
+
 if (isMain) {
   const transport = new StdioServerTransport();
   server.connect(transport).catch((err) => {
