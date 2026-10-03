@@ -34,7 +34,7 @@ test('getIctoolVersion returns version info when ictool is available', async () 
   expect(info).not.toBeNull();
   expect(info!.path).toContain('ictool');
   expect(info!.version).toMatch(/^\d+\.\d+$/);
-  expect(info!.build).toMatch(/^\d+$/);
+  expect(info!.build).toMatch(/^\d+(\.\d+)*$/); // Apple build strings can be dotted (e.g. "99.1")
 });
 
 // ── renderWithIctool ──────────────────────────────────────────────────────────
